@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VacaMap — Partagez vos vacances</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1923;
+  --bg-card: #1a2736;
+  --bg-card-hover: #223344;
+  --accent: #f0a500;
+  --accent-light: #ffd166;
+  --accent-dim: rgba(240,165,0,0.12);
+  --text: #e8e0d6;
+  --text-muted: #8a9bb0;
+  --danger: #e74c3c;
+  --success: #27ae60;
+  --border: rgba(255,255,255,0.07);
+  --radius: 12px;
+  --alert: #ff6b6b;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
+
+/* ── Setup Screen ── */
+#setup-screen { display:flex; align-items:flex-start; justify-content:center; min-height:100vh; min-height:100dvh; overflow-y:auto; padding:2rem 1rem; background:var(--bg); }
+.setup-card { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:2.5rem 2rem; max-width:540px; width:100%; box-shadow:0 8px 40px rgba(0,0,0,0.4); margin:auto; }
+.setup-card h1 { font-family:'Playfair Display',serif; font-size:2rem; background:linear-gradient(135deg,var(--accent),var(--accent-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:0.4rem; }
+.setup-card > p { color:var(--text-muted); margin-bottom:1.5rem; font-size:0.9rem; line-height:1.6; }
+.form-section-title { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--accent); margin:1.5rem 0 0.8rem; padding-bottom:5px; border-bottom:1px solid var(--accent-dim); }
+.form-group { margin-bottom:1rem; }
+.form-group label { display:block; font-size:0.72rem; font-weight:600; color:var(--text-muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:1px; }
+.form-group input, .form-group select, .form-group textarea { font-family:'DM Sans',sans-serif; width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.04); color:var(--text); font-size:0.88rem; transition:border-color 0.2s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:var(--accent); background:rgba(240,165,0,0.05); }
+.form-group input.valid { border-color:var(--success)!important; }
+.form-group input.invalid { border-color:var(--danger)!important; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.input-with-btn { display:flex; gap:8px; }
+.input-with-btn input { flex:1; }
+.help-text { font-size:0.73rem; color:var(--text-muted); margin-top:5px; line-height:1.5; }
+.help-text.success { color:var(--success); }
+.help-text.error { color:var(--danger); }
+.diag-banner { background:rgba(231,76,60,0.08); border:1px solid rgba(231,76,60,0.2); border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:0.8rem; line-height:1.7; display:none; }
+.diag-banner.show { display:block; }
+.diag-banner .diag-title { font-weight:700; color:var(--danger); margin-bottom:5px; }
+.diag-banner .diag-item { color:var(--text-muted); }
+.diag-banner.ok { background:rgba(39,174,96,0.08); border-color:rgba(39,174,96,0.2); }
+.diag-banner.ok .diag-title { color:var(--success); }
+
+/* ── Main App ── */
+#main-app { display:none; flex-direction:column; height:100vh; height:100dvh; }
+header { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); background:rgba(15,25,35,0.95); backdrop-filter:blur(12px); flex-shrink:0; z-index:100; gap:8px; }
+.logo { font-family:'Playfair Display',serif; font-weight:800; font-size:1.25rem; background:linear-gradient(135deg,var(--accent),var(--accent-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; white-space:nowrap; }
+.logo small { -webkit-text-fill-color:var(--text-muted); font-family:'DM Sans',sans-serif; font-weight:400; font-size:0.58rem; letter-spacing:2px; text-transform:uppercase; margin-left:6px; }
+.header-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.user-chip { font-size:0.75rem; color:var(--text-muted); white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── Map ── */
+#map { flex:1; z-index:1; min-height:0; }
+.leaflet-popup-content-wrapper { background:var(--bg-card)!important; color:var(--text)!important; border-radius:12px!important; border:1px solid var(--border)!important; box-shadow:0 8px 32px rgba(0,0,0,0.5)!important; }
+.leaflet-popup-tip { background:var(--bg-card)!important; }
+.leaflet-popup-content { margin:12px 14px!important; font-family:'DM Sans',sans-serif!important; font-size:0.83rem!important; }
+.popup-name { font-weight:700; font-size:0.93rem; margin-bottom:3px; }
+.popup-place { color:var(--accent-light); margin-bottom:2px; }
+.popup-dates,.popup-desc { color:var(--text-muted); font-size:0.77rem; }
+.popup-alert-title { font-weight:700; color:var(--alert); font-size:0.9rem; margin-bottom:3px; }
+.popup-meetup-title { font-weight:700; color:var(--accent); font-size:0.93rem; margin-bottom:3px; }
+
+/* ── Bottom Sheet ── */
+.bottom-sheet { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--bg-card); border-top:1px solid var(--border); border-radius:20px 20px 0 0; max-height:65dvh; transition:transform 0.35s cubic-bezier(0.33,1,0.68,1); transform:translateY(calc(100% - 52px)); display:flex; flex-direction:column; box-shadow:0 -8px 40px rgba(0,0,0,0.5); }
+.bottom-sheet.open { transform:translateY(0); }
+.sheet-handle { width:36px; height:4px; border-radius:4px; background:rgba(255,255,255,0.15); margin:9px auto 5px; flex-shrink:0; cursor:pointer; }
+.tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { flex-shrink:0; text-align:center; padding:9px 12px; font-size:0.72rem; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; background:none; border-top:none; border-left:none; border-right:none; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.sheet-content { overflow-y:auto; padding:12px 14px 32px; flex:1; -webkit-overflow-scrolling:touch; }
+.sheet-content::-webkit-scrollbar { display:none; }
+
+/* ── Cards ── */
+.card { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:var(--radius); padding:11px 13px; margin-bottom:8px; cursor:pointer; transition:background 0.15s; position:relative; }
+.card:active { background:var(--bg-card-hover); }
+.card .c-name { font-weight:700; font-size:0.88rem; margin-bottom:3px; }
+.card .c-sub { font-size:0.75rem; color:var(--text-muted); line-height:1.45; }
+.card .color-bar { position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:2px; }
+
+.alert-card { background:rgba(255,107,107,0.07); border:1px solid rgba(255,107,107,0.2); border-radius:var(--radius); padding:11px 13px; margin-bottom:8px; cursor:pointer; animation:alertPulse 2.5s ease-in-out infinite; }
+@keyframes alertPulse { 0%,100%{border-color:rgba(255,107,107,0.2)} 50%{border-color:rgba(255,107,107,0.45)} }
+.alert-card .a-title { font-weight:700; color:var(--alert); font-size:0.83rem; margin-bottom:4px; }
+.alert-card .a-info { font-size:0.74rem; color:var(--text-muted); line-height:1.5; }
+
+.meetup-card { background:linear-gradient(135deg,rgba(240,165,0,0.06),rgba(255,209,102,0.03)); border:1px solid rgba(240,165,0,0.15); border-radius:var(--radius); padding:11px 13px; margin-bottom:8px; cursor:pointer; }
+.meetup-card .m-title { font-weight:700; color:var(--accent-light); font-size:0.86rem; margin-bottom:4px; }
+.meetup-card .m-info { font-size:0.74rem; color:var(--text-muted); line-height:1.5; }
+
+.section-label { font-size:0.63rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin-bottom:10px; margin-top:4px; }
+.empty { text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.82rem; }
+.empty .icon { font-size:2rem; margin-bottom:8px; opacity:0.4; }
+
+/* ── Filter chips ── */
+.filter-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.chip { font-family:'DM Sans',sans-serif; font-size:0.68rem; font-weight:600; padding:4px 11px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-muted); transition:all 0.15s; }
+.chip.active { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
+
+/* ── Legend ── */
+.legend { display:flex; gap:10px; align-items:center; padding:6px 0; margin-bottom:8px; font-size:0.67rem; color:var(--text-muted); flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-line { width:20px; height:3px; border-radius:2px; }
+.legend-line.solid { background:var(--text-muted); }
+.legend-line.dashed { background:repeating-linear-gradient(90deg,var(--text-muted) 0,var(--text-muted) 4px,transparent 4px,transparent 8px); }
+.legend-line.alert-line { background:var(--alert); height:4px; }
+
+/* ── Transport tag ── */
+.ttag { display:inline-flex; align-items:center; gap:3px; font-size:0.63rem; font-weight:600; padding:2px 7px; border-radius:10px; background:rgba(255,255,255,0.05); color:var(--text-muted); margin-left:4px; vertical-align:middle; }
+
+/* ── Buttons ── */
+.btn { font-family:'DM Sans',sans-serif; border:none; cursor:pointer; border-radius:8px; font-size:0.78rem; font-weight:600; padding:7px 14px; transition:all 0.15s; display:inline-flex; align-items:center; gap:5px; }
+.btn-accent { background:var(--accent); color:#0f1923; }
+.btn-accent:hover { background:var(--accent-light); }
+.btn-accent:disabled { background:rgba(240,165,0,0.3); cursor:not-allowed; }
+.btn-ghost { background:transparent; color:var(--text-muted); border:1px solid var(--border); }
+.btn-ghost:hover { color:var(--text); border-color:rgba(255,255,255,0.15); }
+.btn-danger { background:rgba(231,76,60,0.1); color:var(--danger); }
+.btn-sm { padding:5px 10px; font-size:0.72rem; }
+
+/* ── Modal ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); display:none; align-items:flex-end; justify-content:center; z-index:300; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--bg-card); border:1px solid var(--border); border-radius:20px 20px 0 0; padding:1.4rem 1.2rem 2.5rem; width:100%; max-width:500px; max-height:88dvh; overflow-y:auto; }
+.modal h2 { font-family:'Playfair Display',serif; font-size:1.2rem; margin-bottom:1rem; color:var(--accent-light); }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:1rem; }
+.modal-section-title { font-size:0.63rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--accent); margin:1.2rem 0 0.75rem; padding-bottom:5px; border-bottom:1px solid var(--accent-dim); }
+
+/* ── Address autocomplete ── */
+.addr-wrap { position:relative; }
+.addr-results { position:absolute; top:100%; left:0; right:0; z-index:10; background:var(--bg-card); border:1px solid var(--border); border-top:none; border-radius:0 0 8px 8px; max-height:200px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.5); display:none; }
+.addr-results.show { display:block; }
+.addr-item { padding:9px 12px; font-size:0.8rem; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; display:flex; align-items:flex-start; gap:8px; }
+.addr-item:last-child { border-bottom:none; }
+.addr-item:hover, .addr-item:active { background:var(--bg-card-hover); }
+.addr-icon { flex-shrink:0; font-size:0.88rem; margin-top:1px; }
+.addr-main { color:var(--text); font-weight:500; font-size:0.82rem; }
+.addr-sub { color:var(--text-muted); font-size:0.7rem; margin-top:1px; }
+.addr-resolved { display:flex; align-items:center; gap:5px; margin-top:5px; font-size:0.72rem; color:var(--success); }
+.addr-resolved .coords { color:var(--text-muted); }
+.spinner-sm { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,0.1); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle; }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes alertBounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+
+/* ── Chat ── */
+.chat-wrap { display:flex; flex-direction:column; height:100%; }
+.chat-messages { flex:1; overflow-y:auto; padding-bottom:8px; }
+.chat-msg { display:flex; flex-direction:column; margin-bottom:10px; }
+.chat-msg.me { align-items:flex-end; }
+.chat-msg.other { align-items:flex-start; }
+.chat-bubble { max-width:78%; padding:8px 12px; border-radius:14px; font-size:0.82rem; line-height:1.45; word-break:break-word; }
+.chat-msg.me .chat-bubble { background:var(--accent); color:#0f1923; border-bottom-right-radius:4px; }
+.chat-msg.other .chat-bubble { background:rgba(255,255,255,0.07); color:var(--text); border-bottom-left-radius:4px; }
+.chat-meta { font-size:0.65rem; color:var(--text-muted); margin-top:3px; padding:0 4px; }
+.chat-date-sep { text-align:center; font-size:0.65rem; color:var(--text-muted); margin:10px 0 6px; }
+.chat-input-row { display:flex; gap:8px; padding:10px 0 4px; border-top:1px solid var(--border); margin-top:8px; flex-shrink:0; }
+.chat-input { flex:1; padding:9px 12px; border-radius:20px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.85rem; }
+.chat-input:focus { outline:none; border-color:var(--accent); }
+.chat-send { width:36px; height:36px; border-radius:50%; background:var(--accent); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.chat-send:disabled { background:rgba(240,165,0,0.3); cursor:not-allowed; }
+
+/* ── Toast ── */
+.toast { position:fixed; top:68px; left:50%; transform:translateX(-50%) translateY(-130%); background:var(--bg-card); border:1px solid var(--accent); border-radius:10px; padding:9px 18px; font-size:0.82rem; z-index:500; box-shadow:0 8px 32px rgba(0,0,0,0.5); transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast.error { border-color:var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SETUP SCREEN                          -->
+<!-- ══════════════════════════════════════ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>VacaMap</h1>
+    <p>Partagez vos lieux de vacances avec vos amis et retrouvez-vous sur le chemin.</p>
+
+    <div class="diag-banner" id="diag-banner">
+      <div class="diag-title" id="diag-title">⚠️ Problème détecté</div>
+      <div id="diag-content"></div>
+    </div>
+
+    <div class="form-section-title">Connexion Google Sheet</div>
+
+    <div class="form-group">
+      <label>ID du Google Sheet *</label>
+      <div class="input-with-btn">
+        <input type="text" id="input-sheet-id" placeholder="1A2B3C4D5E6F7G8H… (ou coller l'URL complète)" oninput="extractSheetId(this)">
+        <button class="btn btn-ghost" onclick="testConnection()" id="btn-test" style="white-space:nowrap">Tester</button>
+      </div>
+      <div class="help-text" id="hint-sheet-id">Dans l'URL : docs.google.com/spreadsheets/d/<strong style="color:var(--accent)">IDENTIFIANT</strong>/edit</div>
+    </div>
+
+    <div class="form-group">
+      <label>Clé API Google *</label>
+      <input type="text" id="input-api-key" placeholder="AIzaSy…">
+      <div class="help-text">Avec <strong>Google Sheets API</strong> activée</div>
+    </div>
+
+    <div class="form-group">
+      <label>URL Web App Apps Script</label>
+      <input type="text" id="input-webapp-url" placeholder="https://script.google.com/macros/s/…">
+      <div class="help-text">Nécessaire pour l'écriture (ajout/suppression de voyages)</div>
+    </div>
+
+    <div class="form-section-title">Votre identité</div>
+
+    <div class="form-group">
+      <label>Prénom / pseudo *</label>
+      <input type="text" id="input-username" placeholder="Ex: Julien">
+    </div>
+
+    <div class="form-group">
+      <label>Ville de départ</label>
+      <div class="addr-wrap">
+        <input type="text" id="input-home-lieu" placeholder="Ex: Rennes" autocomplete="off" oninput="addrSearch(this.value,'home')">
+        <div class="addr-results" id="addr-results-home"></div>
+      </div>
+      <div id="addr-resolved-home"></div>
+      <div class="help-text">Utilisée pour tracer vos trajets et détecter des croisements avec vos amis</div>
+    </div>
+
+    <div class="form-group">
+      <label>Mot de passe admin (optionnel)</label>
+      <input type="password" id="input-admin-pwd" placeholder="Laisser vide si non admin">
+    </div>
+
+    <div style="margin-top:1.4rem">
+      <button class="btn btn-accent" onclick="initApp()" style="width:100%;justify-content:center;padding:12px;font-size:0.9rem">Entrer dans VacaMap →</button>
+    </div>
+
+    <details style="margin-top:1.8rem">
+      <summary style="cursor:pointer;color:var(--text-muted);font-size:0.8rem">📋 Guide de configuration</summary>
+      <div style="margin-top:1rem;font-size:0.76rem;color:var(--text-muted);line-height:1.9">
+        <strong style="color:var(--accent)">1. Créer le Google Sheet</strong> avec les onglets suivants :<br>
+        • <b>Voyages</b> — 17 colonnes (créé automatiquement par le script au 1er ajout) :<br>
+        &nbsp;&nbsp;<code>Nom | LieuDepart | LatDepart | LngDepart | DateDepart | TransportAller | DateArrivee | Lieu | Lat | Lng | DateDepartRetour | LieuArrivee | LatArrivee | LngArrivee | TransportRetour | Description | TripId</code><br>
+        &nbsp;&nbsp;<em style="color:var(--danger)">⚠️ Si vous avez une ancienne feuille "Voyages" (8 colonnes), supprimez-la — elle sera recréée automatiquement.</em><br>
+        • <b>Meetups</b> — <code>ID | Proposeur | Lieu | Latitude | Longitude | Date | Description | Participants</code><br>
+        • <b>Profils</b> — créé automatiquement<br>
+        • <b>Messages</b> — créé automatiquement<br>
+        • <b>Config</b> — cellule <b>A2</b> = mot de passe admin (A1 = en-tête)<br><br>
+        <strong style="color:var(--accent)">2. Rendre le Sheet public</strong> : Partager → Lecteur → Tout le monde<br><br>
+        <strong style="color:var(--accent)">3. Clé API</strong> : console.cloud.google.com → Google Sheets API → Identifiants<br><br>
+        <strong style="color:var(--accent)">4. Apps Script</strong> : Extensions → Apps Script → Coller le code → Déployer en Web App (Tout le monde)
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;color:var(--accent)">📜 Code Apps Script</summary>
+          <pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;margin-top:8px;overflow-x:auto;font-size:0.68rem;line-height:1.6;white-space:pre-wrap;word-break:break-all"><code>function doPost(e) {
+  var lock = LockService.getScriptLock(); lock.tryLock(10000);
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = data.action;
+
+    if (action === "upsertProfile") {
+      var sh = ss.getSheetByName("Profils");
+      if (!sh) { sh = ss.insertSheet("Profils"); sh.appendRow(["Nom","VilleDepart","Lat","Lng"]); }
+      var rows = sh.getDataRange().getValues(); var found = false;
+      for (var i = 1; i < rows.length; i++) {
+        if (rows[i][0] === data.nom) { sh.getRange(i+1,1,1,4).setValues([[data.nom,data.lieu,data.lat,data.lng]]); found=true; break; }
+      }
+      if (!found) sh.appendRow([data.nom, data.lieu, data.lat, data.lng]);
+      return ok({status:"ok"});
+    }
+    if (action === "addTrip") {
+      var sh = ss.getSheetByName("Voyages");
+      if (!sh) { sh = ss.insertSheet("Voyages"); sh.appendRow(["Nom","LieuDepart","LatDepart","LngDepart","DateDepart","TransportAller","DateArrivee","Lieu","Lat","Lng","DateDepartRetour","LieuArrivee","LatArrivee","LngArrivee","TransportRetour","Description","TripId"]); }
+      var tripId = data.tripId || ("T" + new Date().getTime().toString(36));
+      sh.appendRow([data.nom, data.lieuDepart||"", data.latDepart||0, data.lngDepart||0, data.dateDepart||"", data.transportAller||"voiture", data.dateArrivee||"", data.lieu||"", data.lat||0, data.lng||0, data.dateDepartRetour||"", data.lieuArrivee||"", data.latArrivee||0, data.lngArrivee||0, data.transportRetour||"voiture", data.description||"", tripId]);
+      return ok({status:"ok", tripId:tripId});
+    }
+    if (action === "deleteTrip") {
+      var sh = ss.getSheetByName("Voyages"); if (!sh) return ok({status:"ok"});
+      var rows = sh.getDataRange().getValues();
+      for (var i = rows.length-1; i >= 1; i--) {
+        if (rows[i][0].toString() !== data.nom) continue;
+        if (data.tripId && rows[i][16] && rows[i][16].toString() === data.tripId.toString()) { sh.deleteRow(i+1); break; }
+        if (!data.tripId && data.lieu && rows[i][7].toString() === data.lieu.toString()) { sh.deleteRow(i+1); break; }
+      }
+      return ok({status:"ok"});
+    }
+    if (action === "deleteProfile") {
+      var s1=ss.getSheetByName("Voyages"); if(s1){var r1=s1.getDataRange().getValues();for(var i=r1.length-1;i>=1;i--)if(r1[i][0]===data.nom)s1.deleteRow(i+1);}
+      var s2=ss.getSheetByName("Meetups"); if(s2){var r2=s2.getDataRange().getValues();for(var i=r2.length-1;i>=1;i--)if(r2[i][1]===data.nom)s2.deleteRow(i+1);}
+      var sp=ss.getSheetByName("Profils"); if(sp){var rp=sp.getDataRange().getValues();for(var i=rp.length-1;i>=1;i--)if(rp[i][0]===data.nom)sp.deleteRow(i+1);}
+      return ok({status:"ok"});
+    }
+    if (action === "addMessage") {
+      var sh = ss.getSheetByName("Messages");
+      if (!sh) { sh = ss.insertSheet("Messages"); sh.appendRow(["Auteur","Message","Timestamp"]); }
+      sh.appendRow([data.auteur, data.message, data.timestamp]);
+      return ok({status:"ok"});
+    }
+    if (action === "addMeetup") {
+      var sh = ss.getSheetByName("Meetups");
+      sh.appendRow([data.id,data.proposeur,data.lieu,data.lat,data.lng,data.date,data.description,data.participants]);
+      return ok({status:"ok"});
+    }
+    if (action === "joinMeetup") {
+      var sh=ss.getSheetByName("Meetups"),rows=sh.getDataRange().getValues();
+      for(var i=1;i&lt;rows.length;i++) if(rows[i][0]===data.id){
+        var parts=rows[i][7]?rows[i][7].toString().split(",").map(function(s){return s.trim();}).filter(Boolean):[];
+        if(parts.indexOf(data.nom)===-1) parts.push(data.nom);
+        sh.getRange(i+1,8).setValue(parts.join(", "));
+      }
+      return ok({status:"ok"});
+    }
+    if (action === "deleteMeetup") {
+      var sh=ss.getSheetByName("Meetups"),rows=sh.getDataRange().getValues();
+      for(var i=rows.length-1;i>=1;i--) if(rows[i][0]===data.id) sh.deleteRow(i+1);
+      return ok({status:"ok"});
+    }
+    return ok({status:"error",message:"Unknown action"});
+  } catch(err) { return ok({status:"error",message:err.toString()}); }
+  finally { lock.releaseLock(); }
+}
+function ok(d){return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);}
+function doGet(e){return ok({status:"VacaMap API running"});}</code></pre>
+        </details>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- MAIN APP                              -->
+<!-- ══════════════════════════════════════ -->
+<div id="main-app">
+  <header>
+    <div class="logo">VacaMap <small>vacances partagées</small></div>
+    <div class="header-right">
+      <span class="user-chip" id="user-display"></span>
+      <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Synchroniser">↻</button>
+      <button class="btn btn-accent btn-sm" onclick="openTripModal()">+ Voyage</button>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('modal-meetup')">☕</button>
+      <button class="btn btn-ghost btn-sm" id="btn-admin" style="display:none" onclick="switchTab('admin')">⚙</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()" title="Config">⎋</button>
+    </div>
+  </header>
+
+  <div id="map"></div>
+
+  <!-- Bottom sheet -->
+  <div class="bottom-sheet" id="sheet">
+    <div class="sheet-handle" id="handle"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="friends" onclick="switchTab('friends')">👥 Amis</button>
+      <button class="tab" data-tab="alerts" onclick="switchTab('alerts')">⚠️ Alertes</button>
+      <button class="tab" data-tab="meetups" onclick="switchTab('meetups')">☕ RDV</button>
+      <button class="tab" data-tab="profile" onclick="switchTab('profile')">👤 Moi</button>
+      <button class="tab" data-tab="chat" onclick="switchTab('chat')">💬 Chat</button>
+      <button class="tab" data-tab="admin" id="tab-admin" style="display:none" onclick="switchTab('admin')">⚙ Admin</button>
+    </div>
+    <div class="sheet-content" id="sheet-content">
+      <div class="empty"><div class="icon">🌍</div><p>Chargement…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- MODALS                                -->
+<!-- ══════════════════════════════════════ -->
+
+<!-- Add / Edit Trip -->
+<div class="modal-overlay" id="modal-trip">
+  <div class="modal">
+    <h2 id="modal-trip-title">Nouveau voyage</h2>
+
+    <div class="modal-section-title">🚀 Aller</div>
+    <div class="form-group addr-wrap">
+      <label>Lieu de départ</label>
+      <input type="text" id="f-lieu-depart" placeholder="Ex: Paris, France" autocomplete="off" oninput="addrSearch(this.value,'trip_depart')">
+      <div class="addr-results" id="addr-results-trip_depart"></div>
+      <div id="addr-resolved-trip_depart"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Date de départ</label><input type="date" id="f-date-depart" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem"></div>
+      <div class="form-group"><label>Date d'arrivée</label><input type="date" id="f-date-arrivee" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem"></div>
+    </div>
+    <div class="form-group">
+      <label>Transport aller</label>
+      <select id="f-transport-aller" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem;appearance:none">
+        <option value="voiture">🚗 Voiture</option>
+        <option value="train">🚆 Train</option>
+        <option value="avion">✈️ Avion</option>
+        <option value="bateau">⛴️ Bateau</option>
+        <option value="velo">🚴 Vélo</option>
+        <option value="pied">🚶 À pied</option>
+      </select>
+    </div>
+
+    <div class="modal-section-title">📍 Destination</div>
+    <div class="form-group addr-wrap">
+      <label>Lieu</label>
+      <input type="text" id="f-lieu" placeholder="Ex: Barcelone, Espagne" autocomplete="off" oninput="addrSearch(this.value,'trip')">
+      <div class="addr-results" id="addr-results-trip"></div>
+      <div id="addr-resolved-trip"></div>
+    </div>
+
+    <div class="modal-section-title">🏠 Retour</div>
+    <div class="form-group">
+      <label>Date de départ du lieu</label>
+      <input type="date" id="f-date-depart-retour" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem">
+    </div>
+    <div class="form-group addr-wrap">
+      <label>Lieu d'arrivée</label>
+      <input type="text" id="f-lieu-arrivee" placeholder="Ex: Paris, France" autocomplete="off" oninput="addrSearch(this.value,'trip_arrivee')">
+      <div class="addr-results" id="addr-results-trip_arrivee"></div>
+      <div id="addr-resolved-trip_arrivee"></div>
+    </div>
+    <div class="form-group">
+      <label>Transport retour</label>
+      <select id="f-transport-retour" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem;appearance:none">
+        <option value="voiture">🚗 Voiture</option>
+        <option value="train">🚆 Train</option>
+        <option value="avion">✈️ Avion</option>
+        <option value="bateau">⛴️ Bateau</option>
+        <option value="velo">🚴 Vélo</option>
+        <option value="pied">🚶 À pied</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Description (optionnel)</label>
+      <textarea id="f-desc" rows="2" placeholder="Notes, activités…" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem;resize:vertical"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeTripModal()">Annuler</button>
+      <button class="btn btn-accent" onclick="submitTrip()" id="btn-submit-trip">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Meetup -->
+<div class="modal-overlay" id="modal-meetup">
+  <div class="modal">
+    <h2>Proposer un RDV</h2>
+    <div class="form-group addr-wrap">
+      <label>Lieu du rendez-vous</label>
+      <input type="text" id="m-lieu" placeholder="Ex: Aire de Montélimar" autocomplete="off" oninput="addrSearch(this.value,'meetup')">
+      <div class="addr-results" id="addr-results-meetup"></div>
+      <div id="addr-resolved-meetup"></div>
+    </div>
+    <div class="form-group"><label>Date</label><input type="date" id="m-date" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem"></div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="m-desc" rows="2" placeholder="Café, déjeuner, étape…" style="font-family:'DM Sans',sans-serif;width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:0.88rem;resize:vertical"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-meetup')">Annuler</button>
+      <button class="btn btn-accent" onclick="submitMeetup()">Proposer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- SCRIPTS                              -->
+<!-- ══════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let SHEET_ID='', API_KEY='', WEBAPP_URL='', USERNAME='', IS_ADMIN=false;
+let HOME_LIEU='', HOME_LAT=null, HOME_LNG=null;
+let map=null, currentTab='friends', isSheetOpen=false, activeFilter=null;
+let tripsData=[], meetupsData=[], profilesData=[], messagesData=[], currentAlerts=[];
+let chatRefreshTimer=null;
+
+const USER_COLORS=['#f0a500','#e74c3c','#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#f39c12','#d35400','#2980b9','#8e44ad','#27ae60','#c0392b','#16a085'];
+const TRANSPORT_ICONS={voiture:'🚗',train:'🚆',avion:'✈️',bateau:'⛴️',velo:'🚴',pied:'🚶'};
+const colorMap={};let colorIdx=0;
+function getColor(n){if(!colorMap[n]){colorMap[n]=USER_COLORS[colorIdx%USER_COLORS.length];colorIdx++;}return colorMap[n];}
+
+// Address search resolved coords
+const resolvedCoords={trip:{lat:null,lng:null,name:''},trip_depart:{lat:null,lng:null,name:''},trip_arrivee:{lat:null,lng:null,name:''},meetup:{lat:null,lng:null,name:''},home:{lat:null,lng:null,name:''}};
+
+// Map layers
+let allLayers=[];
+function clearMap(){allLayers.forEach(l=>{try{map.removeLayer(l);}catch(e){}});allLayers=[];}
+
+// ═══════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════
+function saveConfig(){
+  try{localStorage.setItem('vacamap_cfg',JSON.stringify({sheetId:SHEET_ID,apiKey:API_KEY,webappUrl:WEBAPP_URL,username:USERNAME,homeLieu:HOME_LIEU,homeLat:HOME_LAT,homeLng:HOME_LNG}));}catch(e){}
+}
+function loadConfig(){
+  try{
+    const raw=localStorage.getItem('vacamap_cfg');
+    if(!raw)return;
+    const c=JSON.parse(raw);
+    if(c.sheetId) document.getElementById('input-sheet-id').value=c.sheetId;
+    if(c.apiKey)  document.getElementById('input-api-key').value=c.apiKey;
+    if(c.webappUrl) document.getElementById('input-webapp-url').value=c.webappUrl;
+    if(c.username)  document.getElementById('input-username').value=c.username;
+    if(c.homeLieu){
+      document.getElementById('input-home-lieu').value=c.homeLieu;
+      document.getElementById('addr-resolved-home').innerHTML=`<div class="addr-resolved">✅ <strong>${c.homeLieu}</strong></div>`;
+      resolvedCoords.home={lat:c.homeLat,lng:c.homeLng,name:c.homeLieu};
+    }
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// SHEET ID EXTRACTION
+// ═══════════════════════════════════════════
+function extractSheetId(input){
+  const val=input.value.trim();
+  const m=val.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(m){input.value=m[1];input.classList.add('valid');input.classList.remove('invalid');showHint('hint-sheet-id','✅ ID extrait automatiquement depuis l\'URL !','success');}
+  else{showHint('hint-sheet-id','Dans l\'URL : docs.google.com/spreadsheets/d/<strong style="color:var(--accent)">IDENTIFIANT</strong>/edit','');}
+}
+function getSheetId(){const raw=document.getElementById('input-sheet-id').value.trim();const m=raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);return m?m[1]:raw;}
+function showHint(id,msg,cls){const el=document.getElementById(id);if(el){el.innerHTML=msg;el.className='help-text'+(cls?' '+cls:'');}}
+
+// ═══════════════════════════════════════════
+// DIAGNOSTICS
+// ═══════════════════════════════════════════
+function showDiag(lines,isOk=false){
+  const b=document.getElementById('diag-banner'),t=document.getElementById('diag-title'),c=document.getElementById('diag-content');
+  t.textContent=isOk?'✅ Connexion réussie':'⚠️ Problème de connexion détecté';
+  c.innerHTML=lines.map(l=>`<div class="diag-item">${l}</div>`).join('');
+  b.className='diag-banner show'+(isOk?' ok':'');
+}
+function hideDiag(){document.getElementById('diag-banner').classList.remove('show');}
+
+// ═══════════════════════════════════════════
+// TEST CONNECTION
+// ═══════════════════════════════════════════
+async function testConnection(){
+  const sheetId=getSheetId(), apiKey=document.getElementById('input-api-key').value.trim();
+  if(!sheetId||!apiKey){showDiag(['<strong>Remplissez l\'ID du Sheet et la clé API avant de tester.</strong>']);return;}
+  const btn=document.getElementById('btn-test');
+  btn.innerHTML='<span class="spinner-sm"></span>';btn.disabled=true;hideDiag();
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?key=${apiKey}&fields=properties.title,sheets.properties.title`;
+  try{
+    const resp=await fetch(url);const data=await resp.json();
+    if(!resp.ok){
+      const code=data.error?.code,msg=data.error?.message||'';
+      if(code===400)showDiag(['❌ <strong>ID du Sheet invalide</strong> — vérifiez l\'identifiant entre /d/ et /edit',`Message : ${msg}`]);
+      else if(code===403)showDiag(['❌ <strong>Accès refusé (403)</strong>','→ Vérifiez que <strong>Google Sheets API</strong> est activée dans Google Cloud Console','→ Vérifiez que la clé API est correcte','→ Vérifiez que le Sheet est partagé publiquement',`Message : ${msg}`]);
+      else if(code===404)showDiag([`❌ <strong>Sheet introuvable (404)</strong> — l\'ID semble incorrect`,`Message : ${msg}`]);
+      else showDiag([`❌ Erreur ${code} : ${msg}`]);
+      document.getElementById('input-sheet-id').classList.add('invalid');
+      document.getElementById('input-api-key').classList.add('invalid');
+    } else {
+      const tabs=(data.sheets||[]).map(s=>s.properties.title);
+      const lines=[`Sheet : <strong>${data.properties?.title}</strong>`];
+      ['Voyages','Meetups','Profils','Config'].forEach(t=>{lines.push((tabs.includes(t)?'✅':'⚠️ à créer : ')+` Onglet <strong>${t}</strong>`);});
+      showDiag(lines,true);
+      document.getElementById('input-sheet-id').classList.remove('invalid');document.getElementById('input-api-key').classList.remove('invalid');
+      document.getElementById('input-sheet-id').classList.add('valid');document.getElementById('input-api-key').classList.add('valid');
+    }
+  }catch(e){showDiag(['❌ <strong>Impossible de joindre l\'API Google</strong>','→ Vérifiez votre connexion internet','→ Si vous ouvrez ce fichier depuis votre bureau (fichier://), hébergez-le sur GitHub Pages',`Détail : ${e.message}`]);}
+  btn.innerHTML='Tester';btn.disabled=false;
+}
+
+// ═══════════════════════════════════════════
+// INIT APP
+// ═══════════════════════════════════════════
+async function initApp(){
+  SHEET_ID=getSheetId();
+  API_KEY=document.getElementById('input-api-key').value.trim();
+  USERNAME=document.getElementById('input-username').value.trim();
+  WEBAPP_URL=document.getElementById('input-webapp-url').value.trim();
+  const adminPwd=document.getElementById('input-admin-pwd').value.trim();
+  HOME_LIEU=resolvedCoords.home.name||document.getElementById('input-home-lieu').value.trim();
+  HOME_LAT=resolvedCoords.home.lat;
+  HOME_LNG=resolvedCoords.home.lng;
+
+  if(!SHEET_ID||!API_KEY||!USERNAME){showDiag(['<strong>Remplissez les champs obligatoires :</strong> ID du Sheet, Clé API, Prénom.']);return;}
+
+  saveConfig();hideDiag();
+
+  if(adminPwd){
+    try{const cfg=await fetchSheet('Config');if(cfg.length>0&&cfg[0][0]===adminPwd)IS_ADMIN=true;else showToast('Mot de passe admin incorrect',true);}catch(e){}
+  }
+
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('user-display').textContent=USERNAME+(IS_ADMIN?' (admin)':'');
+  if(IS_ADMIN){document.getElementById('btn-admin').style.display='';document.getElementById('tab-admin').style.display='';}
+
+  initMap();
+  await refreshData();
+
+  // Upsert profile si home défini
+  if(HOME_LAT&&HOME_LNG&&WEBAPP_URL) postToSheet({action:'upsertProfile',nom:USERNAME,lieu:HOME_LIEU,lat:HOME_LAT,lng:HOME_LNG}).catch(()=>{});
+
+  map.on('click',e=>{
+    const active=document.querySelector('.modal-overlay.show');
+    if(!active)return;
+    const ctx=active.id==='modal-trip'?'trip':'meetup';
+    resolvedCoords[ctx]={lat:e.latlng.lat,lng:e.latlng.lng,name:`${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`};
+    document.getElementById(ctx==='trip'?'addr-resolved-trip':'addr-resolved-meetup').innerHTML=`<div class="addr-resolved">📍 Lat ${e.latlng.lat.toFixed(4)}, Lng ${e.latlng.lng.toFixed(4)}</div>`;
+    showToast('Coordonnées récupérées depuis la carte ✓');
+  });
+}
+
+function logout(){if(!confirm('Revenir à la configuration ?'))return;document.getElementById('main-app').style.display='none';document.getElementById('setup-screen').style.display='flex';if(map){map.remove();map=null;}allLayers=[];IS_ADMIN=false;document.getElementById('btn-admin').style.display='none';document.getElementById('tab-admin').style.display='none';activeFilter=null;}
+
+// ═══════════════════════════════════════════
+// MAP INIT
+// ═══════════════════════════════════════════
+function initMap(){
+  map=L.map('map',{zoomControl:false}).setView([46.5,2.5],6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19}).addTo(map);
+  L.control.zoom({position:'topright'}).addTo(map);
+  setTimeout(()=>map.invalidateSize(),200);
+  window.addEventListener('resize',()=>map.invalidateSize());
+}
+
+// ═══════════════════════════════════════════
+// GOOGLE SHEETS API (read)
+// ═══════════════════════════════════════════
+async function fetchSheet(sheetName){
+  const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
+  let resp;
+  try{resp=await fetch(url);}catch(e){throw new Error('Impossible de joindre l\'API Google. Vérifiez votre connexion.');}
+  if(!resp.ok){
+    const d=await resp.json().catch(()=>({}));const code=d.error?.code||resp.status;const msg=d.error?.message||resp.statusText;
+    if(code===403)throw new Error(`Accès refusé (403) — vérifiez que l'API Sheets est activée et que la clé est valide.`);
+    if(code===404)throw new Error(`Sheet introuvable (404) — vérifiez l'ID du Sheet.`);
+    // 400 "Unable to parse range" = l'onglet n'existe pas encore → tableau vide (sera créé au 1er ajout)
+    if(Number(code)===400&&msg.toLowerCase().includes('unable to parse range'))return[];
+    throw new Error(`Erreur ${code} : ${msg}`);
+  }
+  const data=await resp.json();
+  return(data.values||[]).slice(1);
+}
+
+// ═══════════════════════════════════════════
+// APPS SCRIPT (write)
+// ═══════════════════════════════════════════
+async function postToSheet(payload){
+  if(!WEBAPP_URL){showToast('URL Web App non configurée — écriture impossible.',true);return false;}
+  try{await fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});return true;}
+  catch(e){showToast('Erreur d\'écriture : '+e.message,true);return false;}
+}
+
+// ═══════════════════════════════════════════
+// REFRESH DATA
+// ═══════════════════════════════════════════
+async function refreshData(){
+  setStatus('loading');
+  try{
+    try{tripsData=await fetchSheet('Voyages');}catch(e){tripsData=[];}
+    try{meetupsData=await fetchSheet('Meetups');}catch(e){meetupsData=[];}
+    try{profilesData=await fetchSheet('Profils');}catch(e){profilesData=[];}
+    try{messagesData=await fetchSheet('Messages');}catch(e){messagesData=[];}
+    renderMap();
+    renderCurrentTab();
+    setStatus('ok');
+    // Alert notification
+    if(currentAlerts.length>0) setTimeout(()=>showToast(`⚠️ ${currentAlerts.length} croisement(s) de route détecté(s) !`,true),600);
+  }catch(e){setStatus('error');showToast('Erreur : '+e.message,true);}
+}
+
+// ═══════════════════════════════════════════
+// GEOMETRY — ROUTES & ALERTS
+// ═══════════════════════════════════════════
+function getHomes(){
+  const h={};
+  profilesData.forEach(r=>{h[r[0]]={lieu:r[1],lat:parseFloat(r[2]),lng:parseFloat(r[3])};});
+  // Current user home from localStorage
+  if(HOME_LAT&&HOME_LNG) h[USERNAME]={lieu:HOME_LIEU,lat:HOME_LAT,lng:HOME_LNG};
+  return h;
+}
+
+// Nouveau schéma Voyages (17 colonnes) :
+// 0=Nom, 1=LieuDepart, 2=LatDepart, 3=LngDepart, 4=DateDepart, 5=TransportAller,
+// 6=DateArrivee, 7=Lieu, 8=Lat, 9=Lng, 10=DateDepartRetour, 11=LieuArrivee,
+// 12=LatArrivee, 13=LngArrivee, 14=TransportRetour, 15=Description, 16=TripId
+function buildTripGroups(){
+  const g={};
+  tripsData.forEach(r=>{
+    const name=r[0];
+    if(!g[name])g[name]=[];
+    g[name].push({
+      lieuDepart:r[1]||'',latDepart:parseFloat(r[2]),lngDepart:parseFloat(r[3]),
+      dateDepart:r[4]||'',transportAller:(r[5]||'voiture').toLowerCase(),dateArrivee:r[6]||'',
+      lieu:r[7]||r[1]||'',lat:parseFloat(r[8]||r[2]),lng:parseFloat(r[9]||r[3]),
+      dateDepartRetour:r[10]||'',lieuArrivee:r[11]||'',latArrivee:parseFloat(r[12]),lngArrivee:parseFloat(r[13]),
+      transportRetour:(r[14]||r[5]||'voiture').toLowerCase(),desc:r[15]||'',
+      tripId:r[16]||''
+    });
+  });
+  return g;
+}
+
+function buildSegments(grouped){
+  const segs=[];
+  Object.entries(grouped).forEach(([name,trips])=>{
+    trips.forEach(t=>{
+      // Segment aller : LieuDepart → Lieu
+      if(!isNaN(t.latDepart)&&!isNaN(t.lat)&&t.latDepart&&t.lat){
+        segs.push({nom:name,from:{lat:t.latDepart,lng:t.lngDepart},to:{lat:t.lat,lng:t.lng},
+          transport:t.transportAller,tStart:t.dateDepart,tEnd:t.dateArrivee||t.dateDepart,
+          label:`${t.lieuDepart} → ${t.lieu}`});
+      }
+      // Segment retour : Lieu → LieuArrivee
+      if(!isNaN(t.latArrivee)&&!isNaN(t.lat)&&t.latArrivee&&t.lat&&t.dateDepartRetour){
+        segs.push({nom:name,from:{lat:t.lat,lng:t.lng},to:{lat:t.latArrivee,lng:t.lngArrivee},
+          transport:t.transportRetour,tStart:t.dateDepartRetour,tEnd:shiftDate(t.dateDepartRetour,2),
+          label:`${t.lieu} → ${t.lieuArrivee}`});
+      }
+    });
+  });
+  return segs;
+}
+
+function shiftDate(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
+function datesOverlap(a0,a1,b0,b1){return new Date(a0)<=new Date(b1)&&new Date(b0)<=new Date(a1);}
+function segIntersect(p1,p2,p3,p4){
+  const d1x=p2.lng-p1.lng,d1y=p2.lat-p1.lat,d2x=p4.lng-p3.lng,d2y=p4.lat-p3.lat;
+  const cross=d1x*d2y-d1y*d2x;if(Math.abs(cross)<1e-10)return null;
+  const dx=p3.lng-p1.lng,dy=p3.lat-p1.lat;
+  const t=(dx*d2y-dy*d2x)/cross,u=(dx*d1y-dy*d1x)/cross;
+  if(t>=0.05&&t<=0.95&&u>=0.05&&u<=0.95)return{lat:p1.lat+t*d1y,lng:p1.lng+t*d1x};
+  return null;
+}
+
+function detectAlerts(segs){
+  const car=segs.filter(s=>s.transport==='voiture');const alerts=[];
+  for(let i=0;i<car.length;i++) for(let j=i+1;j<car.length;j++){
+    const a=car[i],b=car[j];if(a.nom===b.nom)continue;
+    if(!datesOverlap(a.tStart,a.tEnd,b.tStart,b.tEnd))continue;
+    const pt=segIntersect(a.from,a.to,b.from,b.to);
+    if(pt){
+      const os=new Date(a.tStart)>new Date(b.tStart)?a.tStart:b.tStart;
+      const oe=new Date(a.tEnd)<new Date(b.tEnd)?a.tEnd:b.tEnd;
+      alerts.push({personA:a.nom,personB:b.nom,segA:a.label,segB:b.label,lat:pt.lat,lng:pt.lng,dateRange:`${fmtDate(os)} — ${fmtDate(oe)}`});
+    }
+  }
+  return alerts;
+}
+
+// ═══════════════════════════════════════════
+// RENDER MAP
+// ═══════════════════════════════════════════
+function renderMap(filterName){
+  clearMap();
+  const homes=getHomes();
+  const grouped=buildTripGroups();
+  const allSegs=buildSegments(grouped);
+  const filteredSegs=filterName?allSegs.filter(s=>s.nom===filterName):allSegs;
+  const filteredTrips=filterName?(tripsData.filter(r=>r[0]===filterName)):tripsData;
+  const filteredMeetups=filterName?meetupsData.filter(m=>m[1]===filterName||(m[7]||'').includes(filterName)):meetupsData;
+
+  // Route lines
+  filteredSegs.forEach(seg=>{
+    const color=getColor(seg.nom);const isCar=seg.transport==='voiture';
+    const line=L.polyline([[seg.from.lat,seg.from.lng],[seg.to.lat,seg.to.lng]],{color,weight:isCar?3:2,opacity:isCar?0.75:0.5,dashArray:isCar?null:'7,7',lineCap:'round'}).addTo(map);
+    line.bindPopup(`<div class="popup-name" style="color:${color}">${seg.nom}</div><div class="popup-place">${TRANSPORT_ICONS[seg.transport]||'🚗'} ${seg.label}</div><div class="popup-dates">${fmtDate(seg.tStart)} → ${fmtDate(seg.tEnd)}</div>`);
+    allLayers.push(line);
+  });
+
+  // Home markers
+  const displayHomes=filterName?{[filterName]:homes[filterName]}:homes;
+  Object.entries(displayHomes).forEach(([name,h])=>{
+    if(!h||isNaN(h.lat)||!grouped[name])return;
+    const color=getColor(name);
+    const icon=L.divIcon({className:'x',html:`<div style="width:10px;height:10px;border-radius:2px;background:${color};border:2px solid rgba(255,255,255,0.6);box-shadow:0 1px 6px rgba(0,0,0,0.5);transform:rotate(45deg)"></div>`,iconSize:[10,10],iconAnchor:[5,5]});
+    const m=L.marker([h.lat,h.lng],{icon}).addTo(map).bindPopup(`<div class="popup-name" style="color:${color}">${name}</div><div class="popup-place">🏠 ${h.lieu}</div>`);
+    allLayers.push(m);
+  });
+
+  // Trip markers (destination principale : col 8=lat, 9=lng, 7=lieu)
+  filteredTrips.forEach(r=>{
+    const name=r[0];
+    const lat=parseFloat(r[8]||r[2]),lng=parseFloat(r[9]||r[3]);
+    const lieu=r[7]||r[1]||'';
+    const tAller=(r[5]||'voiture').toLowerCase(),tRetour=(r[14]||r[5]||'voiture').toLowerCase();
+    if(isNaN(lat)||isNaN(lng))return;
+    const color=getColor(name);const sz=name===USERNAME?16:12;
+    const icon=L.divIcon({className:'x',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5)"></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const popup=`<div class="popup-name" style="color:${color}">${name}</div><div class="popup-place">📍 ${lieu}</div><div class="popup-dates">🛫 ${fmtDate(r[4])} → ${fmtDate(r[6])}</div><div class="popup-dates">🛬 retour ${fmtDate(r[10])}</div><div class="popup-dates">${TRANSPORT_ICONS[tAller]||'🚗'} aller · ${TRANSPORT_ICONS[tRetour]||'🚗'} retour</div>${r[15]?`<div class="popup-desc" style="margin-top:4px">${r[15]}</div>`:''}`;
+    const m=L.marker([lat,lng],{icon}).addTo(map).bindPopup(popup);
+    allLayers.push(m);
+  });
+
+  // Meetup markers
+  filteredMeetups.forEach(r=>{
+    const lat=parseFloat(r[3]),lng=parseFloat(r[4]);if(isNaN(lat)||isNaN(lng))return;
+    const icon=L.divIcon({className:'x',html:`<div style="width:22px;height:22px;border-radius:5px;background:rgba(240,165,0,0.9);border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:12px">☕</div>`,iconSize:[22,22],iconAnchor:[11,11]});
+    const parts=(r[7]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const m=L.marker([lat,lng],{icon}).addTo(map).bindPopup(`<div class="popup-meetup-title">☕ ${r[2]}</div><div class="popup-dates">Par ${r[1]} — 📅 ${fmtDate(r[5])}</div>${r[6]?`<div class="popup-desc">${r[6]}</div>`:''}<div class="popup-dates" style="margin-top:3px">👥 ${parts.length?parts.join(', '):'Aucun participant'}</div>`);
+    allLayers.push(m);
+  });
+
+  // Alert markers
+  currentAlerts=filterName?[]:detectAlerts(allSegs);
+  updateAlertBadge();
+  currentAlerts.forEach(a=>{
+    const icon=L.divIcon({className:'x',html:`<div style="width:26px;height:26px;border-radius:50%;background:rgba(255,107,107,0.9);border:3px solid #fff;box-shadow:0 0 16px rgba(255,107,107,0.5);display:flex;align-items:center;justify-content:center;font-size:13px;animation:alertBounce 1s ease-in-out infinite">⚠️</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+    const m=L.marker([a.lat,a.lng],{icon,zIndexOffset:1000}).addTo(map).bindPopup(`<div class="popup-alert-title">⚠️ Croisement détecté !</div><div class="popup-place"><strong>${a.personA}</strong> × <strong>${a.personB}</strong></div><div class="popup-dates">🚗 ${a.segA}</div><div class="popup-dates">🚗 ${a.segB}</div><div class="popup-dates" style="margin-top:4px;color:var(--accent)">📅 ${a.dateRange}</div>`);
+    allLayers.push(m);
+  });
+
+  const coords=allLayers.filter(l=>l.getLatLng).map(l=>l.getLatLng());
+  if(coords.length>0) map.fitBounds(L.latLngBounds(coords).pad(0.12));
+}
+
+function updateAlertBadge(){
+  const t=document.querySelector('.tab[data-tab="alerts"]');
+  if(t)t.textContent=currentAlerts.length>0?`⚠️ (${currentAlerts.length})`:'⚠️ Alertes';
+}
+
+// ═══════════════════════════════════════════
+// BOTTOM SHEET
+// ═══════════════════════════════════════════
+const getSheet=()=>document.getElementById('sheet');
+const getHandle=()=>document.getElementById('handle');
+
+function setupSheet(){
+  const h=getHandle();
+  h.addEventListener('click',()=>toggleSheet());
+  let startY=0,dragging=false;
+  h.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;dragging=true;},{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!dragging)return;
+    const dy=e.touches[0].clientY-startY;
+    const s=getSheet();
+    if(isSheetOpen&&dy>0)s.style.transform=`translateY(${dy}px)`;
+    if(!isSheetOpen&&dy<0)s.style.transform=`translateY(calc(100% - 52px + ${dy}px))`;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!dragging)return;dragging=false;
+    const dy=e.changedTouches[0].clientY-startY;
+    getSheet().style.transform='';
+    if(isSheetOpen&&dy>60){isSheetOpen=false;getSheet().classList.remove('open');}
+    else if(!isSheetOpen&&dy<-60){isSheetOpen=true;getSheet().classList.add('open');}
+  });
+}
+
+function toggleSheet(){isSheetOpen=!isSheetOpen;getSheet().classList.toggle('open',isSheetOpen);}
+function openSheet(){isSheetOpen=true;getSheet().classList.add('open');}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  openSheet();
+  renderCurrentTab();
+}
+function renderCurrentTab(){
+  const c=document.getElementById('sheet-content');
+  ({friends:renderFriends,alerts:renderAlerts,meetups:renderMeetupsList,profile:renderProfile,chat:renderChat,admin:renderAdmin})[currentTab]?.(c);
+}
+
+// ── Friends ──
+function renderFriends(c){
+  const grouped=buildTripGroups();
+  const names=Object.keys(grouped);
+  if(!names.length){c.innerHTML='<div class="empty"><div class="icon">🌍</div><p>Aucun voyageur pour l\'instant.<br>Ajoutez votre premier voyage !</p></div>';return;}
+  const chips=names.map(n=>`<button class="chip ${activeFilter===n?'active':''}" style="${activeFilter===n?`border-color:${getColor(n)};color:${getColor(n)}`:''}" onclick="focusUser('${n.replace(/'/g,"\\'")}')"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${getColor(n)};margin-right:4px"></span>${n}</button>`).join('');
+  let html=`<div class="filter-row"><button class="chip ${!activeFilter?'active':''}" onclick="focusUser(null)">Tous</button>${chips}</div>`;
+  html+=`<div class="legend"><div class="legend-item"><div class="legend-line solid"></div>Voiture</div><div class="legend-item"><div class="legend-line dashed"></div>Train/Avion</div>${currentAlerts.length?`<div class="legend-item"><div class="legend-line alert-line"></div>Croisement</div>`:''}</div>`;
+  const trips=activeFilter?tripsData.filter(r=>r[0]===activeFilter):tripsData;
+  html+=`<div class="section-label">${activeFilter||'Tous les voyageurs'} (${trips.length} voyage${trips.length>1?'s':''})</div>`;
+  trips.forEach(r=>{
+    const tAller=(r[5]||'voiture').toLowerCase(),tRetour=(r[14]||r[5]||'voiture').toLowerCase();
+    const lieu=r[7]||r[1]||'';const lat=r[8]||r[2],lng=r[9]||r[3];
+    html+=`<div class="card" onclick="flyTo(${lat},${lng})"><div class="color-bar" style="background:${getColor(r[0])}"></div><div class="c-name" style="padding-left:10px">${r[0]===USERNAME?'⭐ ':''}<strong>${r[0]}</strong></div><div class="c-sub" style="padding-left:10px">${TRANSPORT_ICONS[tAller]||'🚗'} ${r[1]||'?'} → <strong>${lieu}</strong> → ${r[11]||r[1]||'?'}<br>📅 ${fmtDate(r[4])} › arrivée ${fmtDate(r[6])} › retour ${fmtDate(r[10])}</div></div>`;
+  });
+  c.innerHTML=html;
+}
+function focusUser(name){activeFilter=name;renderMap(name);renderCurrentTab();}
+function flyTo(lat,lng){if(!lat||!lng)return;map.setView([parseFloat(lat),parseFloat(lng)],10,{animate:true});}
+
+// ── Alerts ──
+function renderAlerts(c){
+  const grouped=buildTripGroups();const segs=buildSegments(grouped);const alerts=detectAlerts(segs);
+  if(!alerts.length){c.innerHTML=`<div class="empty"><div class="icon">✅</div><p>Aucun croisement de route voiture détecté.<br><small>Seuls les trajets voiture sur des périodes communes sont analysés.</small></p></div>`;return;}
+  let html=`<div class="section-label">Croisements détectés (${alerts.length})</div><div style="font-size:0.73rem;color:var(--text-muted);margin-bottom:10px">Routes voiture qui se croisent à la même période — proposez un RDV !</div>`;
+  alerts.forEach(a=>{
+    html+=`<div class="alert-card" onclick="flyTo(${a.lat},${a.lng})"><div class="a-title">⚠️ ${a.personA} × ${a.personB}</div><div class="a-info">🚗 ${a.personA} : ${a.segA}<br>🚗 ${a.personB} : ${a.segB}<br>📅 Période commune : ${a.dateRange}</div><div style="margin-top:8px"><button class="btn btn-accent btn-sm" onclick="event.stopPropagation();openModal('modal-meetup');document.getElementById('m-lieu').focus()">☕ Proposer un RDV ici</button></div></div>`;
+  });
+  c.innerHTML=html;
+}
+
+// ── Meetups ──
+function renderMeetupsList(c){
+  if(!meetupsData.length){c.innerHTML=`<div class="empty"><div class="icon">☕</div><p>Aucun RDV proposé</p></div><div style="text-align:center;margin-top:12px"><button class="btn btn-accent" onclick="openModal('modal-meetup')">+ Proposer un RDV</button></div>`;return;}
+  let html=`<div class="section-label">Rendez-vous (${meetupsData.length})</div>`;
+  meetupsData.forEach(r=>{
+    const parts=(r[7]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const joined=parts.includes(USERNAME);
+    html+=`<div class="meetup-card" onclick="flyTo(${r[3]},${r[4]})"><div class="m-title">☕ ${r[2]}</div><div class="m-info">Par <strong>${r[1]}</strong> — 📅 ${fmtDate(r[5])}<br>${r[6]?r[6]+'<br>':''} 👥 ${parts.length?parts.join(', '):'Aucun participant'}</div><div style="margin-top:8px;display:flex;gap:6px">${joined?'<span style="font-size:0.74rem;color:var(--success)">✓ Inscrit</span>':`<button class="btn btn-accent btn-sm" onclick="event.stopPropagation();joinMeetup('${r[0]}')">Participer</button>`}${(r[1]===USERNAME||IS_ADMIN)?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteMeetup('${r[0]}')">Supprimer</button>`:''}</div></div>`;
+  });
+  html+=`<div style="margin-top:10px"><button class="btn btn-accent" onclick="openModal('modal-meetup')">+ Proposer un RDV</button></div>`;
+  c.innerHTML=html;
+}
+
+// ── Profile ──
+function renderProfile(c){
+  const my=tripsData.filter(r=>r[0]===USERNAME);
+  let html=`<div class="section-label">Mes voyages (${my.length})</div>`;
+  if(!my.length)html+='<div class="empty"><p>Aucun voyage enregistré.</p></div>';
+  else my.forEach(r=>{
+    const tAller=(r[5]||'voiture').toLowerCase(),tRetour=(r[14]||r[5]||'voiture').toLowerCase();
+    const lieu=r[7]||r[1]||'',lieuDep=r[1]||'',lieuArr=r[11]||'';
+    const safeKey=encodeURIComponent(JSON.stringify({
+      tripId:r[16]||'',
+      lieuDepart:lieuDep,latDepart:r[2],lngDepart:r[3],
+      dateDepart:r[4],transportAller:tAller,dateArrivee:r[6],
+      lieu,lat:r[8]||r[2],lng:r[9]||r[3],
+      dateDepartRetour:r[10],lieuArrivee:lieuArr,latArrivee:r[12],lngArrivee:r[13],
+      transportRetour:tRetour,desc:r[15]||''
+    }));
+    html+=`<div class="card">
+      <div class="color-bar" style="background:var(--accent)"></div>
+      <div style="padding-left:10px">
+        <div class="c-name">${TRANSPORT_ICONS[tAller]||'🚗'} <strong>${lieuDep||'?'}</strong> → <strong style="color:var(--accent-light)">${lieu}</strong> → <strong>${lieuArr||'?'}</strong></div>
+        <div class="c-sub">🛫 départ ${fmtDate(r[4])} &nbsp;·&nbsp; 🛬 arrivée ${fmtDate(r[6])}<br>🔄 retour ${fmtDate(r[10])} ${TRANSPORT_ICONS[tRetour]||'🚗'}${r[15]?'<br>'+r[15]:''}</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openEditTrip('${safeKey}')">✏️ Modifier</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTrip('${(r[16]||'').replace(/'/g,"\\'")}','${lieu.replace(/'/g,"\\'")}')">🗑️ Supprimer</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html+=`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-accent" onclick="openTripModal()">+ Ajouter un voyage</button><button class="btn btn-danger" onclick="deleteProfile()">Supprimer mon profil</button></div>`;
+  if(HOME_LIEU) html+=`<div style="margin-top:12px;font-size:0.74rem;color:var(--text-muted)">🏠 Ville de départ : ${HOME_LIEU}</div>`;
+  c.innerHTML=html;
+}
+
+// ── Admin ──
+function renderAdmin(c){
+  const g={};tripsData.forEach(r=>{if(!g[r[0]])g[r[0]]=0;g[r[0]]++;});
+  let html='<div class="section-label">Administration</div>';
+  Object.entries(g).forEach(([name,count])=>{
+    html+=`<div class="card"><div class="color-bar" style="background:${getColor(name)}"></div><div class="c-name" style="padding-left:10px">${name}</div><div class="c-sub" style="padding-left:10px">${count} voyage(s)</div><div style="padding-left:10px;margin-top:8px"><button class="btn btn-danger btn-sm" onclick="adminDelete('${name.replace(/'/g,"\\'")}')">Supprimer le profil</button></div></div>`;
+  });
+  c.innerHTML=html||'<div class="empty"><p>Aucun profil.</p></div>';
+}
+// ── Chat ──
+function renderChat(c){
+  // Build HTML
+  let html='<div class="chat-wrap"><div class="chat-messages" id="chat-messages">';
+  if(!messagesData.length){html+='<div class="empty" style="padding:1.5rem 0"><div class="icon">💬</div><p>Aucun message pour l\'instant.<br>Soyez le premier !</p></div>';}
+  else{
+    let lastDate='';
+    messagesData.forEach(r=>{
+      const auteur=r[0],msg=r[1],ts=r[2]||'';
+      const isMe=auteur===USERNAME;
+      const d=ts.split('T')[0]||ts.split(' ')[0]||'';
+      const timeStr=ts?formatChatTime(ts):'';
+      if(d&&d!==lastDate){html+=`<div class="chat-date-sep">${formatChatDate(d)}</div>`;lastDate=d;}
+      html+=`<div class="chat-msg ${isMe?'me':'other'}"><div class="chat-bubble">${escapeHtml(msg)}</div><div class="chat-meta">${isMe?'':`<strong>${auteur}</strong> · `}${timeStr}</div></div>`;
+    });
+  }
+  html+='</div>';
+  html+=`<div class="chat-input-row"><input class="chat-input" id="chat-input" type="text" placeholder="Écrire un message…" maxlength="500" onkeydown="if(event.key==='Enter')sendMessage()"><button class="chat-send" onclick="sendMessage()" id="btn-chat-send">➤</button></div>`;
+  html+='</div>';
+  c.innerHTML=html;
+  // Scroll to bottom
+  const msgs=document.getElementById('chat-messages');
+  if(msgs)msgs.scrollTop=msgs.scrollHeight;
+  // Auto-refresh every 15s when chat is open
+  clearTimeout(chatRefreshTimer);
+  chatRefreshTimer=setTimeout(async()=>{
+    if(currentTab==='chat'){try{messagesData=await fetchSheet('Messages');}catch(e){}renderCurrentTab();}
+  },15000);
+}
+
+async function sendMessage(){
+  const input=document.getElementById('chat-input');const btn=document.getElementById('btn-chat-send');
+  if(!input)return;
+  const msg=input.value.trim();if(!msg)return;
+  btn.disabled=true;
+  const ts=new Date().toISOString();
+  const ok=await postToSheet({action:'addMessage',auteur:USERNAME,message:msg,timestamp:ts});
+  if(ok){
+    input.value='';
+    messagesData.push([USERNAME,msg,ts]);
+    renderCurrentTab();
+  }
+  if(btn)btn.disabled=false;
+}
+
+function formatChatTime(ts){try{const d=new Date(ts);return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+function formatChatDate(d){try{const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});}catch(e){return d;}}
+function escapeHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function adminDelete(name){if(!confirm(`Supprimer le profil de ${name} ?`))return;await postToSheet({action:'deleteProfile',nom:name});showToast(`Profil de ${name} supprimé`);setTimeout(refreshData,2000);}
+
+// ═══════════════════════════════════════════
+// ADDRESS AUTOCOMPLETE (Nominatim)
+// ═══════════════════════════════════════════
+let addrTimers={};
+function addrSearch(query,ctx){
+  clearTimeout(addrTimers[ctx]);
+  const panel=document.getElementById(`addr-results-${ctx}`);
+  const resolved=document.getElementById(`addr-resolved-${ctx}`);
+  resolved.innerHTML='';resolvedCoords[ctx]={lat:null,lng:null,name:''};
+  if(query.length<3){panel.classList.remove('show');return;}
+  resolved.innerHTML='<span class="spinner-sm"></span> <span style="font-size:0.72rem;color:var(--text-muted)">Recherche…</span>';
+  addrTimers[ctx]=setTimeout(async()=>{
+    try{
+      // Pas de restriction géographique pour la destination (vacances à l'étranger)
+      const cc=ctx==='trip'?'':'&countrycodes=fr,be,ch,lu,es,it,pt,de,gb,nl,ma,tn,gr';
+      const resp=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&accept-language=fr${cc}&addressdetails=1`);
+      const raw=await resp.json();resolved.innerHTML='';
+      if(!raw.length){panel.innerHTML='<div class="addr-item"><span style="color:var(--text-muted);font-size:0.8rem">Aucun résultat</span></div>';panel.classList.add('show');return;}
+      // Prioriser les vraies villes (class=place) sur les contours administratifs
+      const placeTypes=['city','town','village','hamlet','suburb','quarter','neighbourhood'];
+      const data=[
+        ...raw.filter(r=>r.class==='place'&&placeTypes.includes(r.type)),
+        ...raw.filter(r=>!(r.class==='place'&&placeTypes.includes(r.type)))
+      ].slice(0,5);
+      panel.innerHTML=data.map((r,i)=>{
+        const addr=r.address||{};
+        const city=addr.city||addr.town||addr.village||addr.hamlet||r.display_name.split(',')[0];
+        const dept=addr.county||addr.state_district||'';
+        const region=addr.state||'';
+        const sub=[dept,region].filter(Boolean).join(', ');
+        const icon=r.type==='city'?'🏙️':r.type==='town'?'🏘️':r.type==='village'?'🏡':r.class==='place'?'📍':'🗺️';
+        return`<div class="addr-item" onclick="addrSelect(${i},'${ctx}')"><span class="addr-icon">${icon}</span><div><div class="addr-main">${city}</div><div class="addr-sub">${sub||r.display_name.split(',').slice(1,3).join(',').trim()}</div></div></div>`;
+      }).join('');
+      panel._data=data;panel.classList.add('show');
+    }catch(e){resolved.innerHTML='<span style="font-size:0.72rem;color:var(--danger)">Erreur réseau</span>';panel.classList.remove('show');}
+  },400);
+}
+
+function addrSelect(idx,ctx){
+  const panel=document.getElementById(`addr-results-${ctx}`);
+  const resolved=document.getElementById(`addr-resolved-${ctx}`);
+  const r=panel._data[idx];if(!r)return;
+  const lat=parseFloat(r.lat),lng=parseFloat(r.lon);
+  const addr=r.address||{};
+  const city=addr.city||addr.town||addr.village||addr.hamlet||r.display_name.split(',')[0];
+  const dept=addr.county||addr.state_district||addr.state||'';
+  const name=dept?`${city}, ${dept}`:city;
+  resolvedCoords[ctx]={lat,lng,name};
+  const inputId={trip:'f-lieu',trip_depart:'f-lieu-depart',trip_arrivee:'f-lieu-arrivee',meetup:'m-lieu',home:'input-home-lieu'}[ctx];
+  if(inputId) document.getElementById(inputId).value=name;
+  resolved.innerHTML=`<div class="addr-resolved">✅ <strong>${name}</strong> <span class="coords">(${lat.toFixed(4)}, ${lng.toFixed(4)})</span></div>`;
+  panel.classList.remove('show');
+  if(ctx==='home'){HOME_LIEU=name;HOME_LAT=lat;HOME_LNG=lng;}
+  if(map&&ctx==='trip') map.setView([lat,lng],8,{animate:true});
+}
+
+document.addEventListener('click',e=>{if(!e.target.closest('.addr-wrap'))document.querySelectorAll('.addr-results').forEach(p=>p.classList.remove('show'));});
+
+// ═══════════════════════════════════════════
+// CRUD OPERATIONS
+// ═══════════════════════════════════════════
+
+let editingTrip=null;
+
+// ── Ouvrir le modal pour un nouveau voyage (pré-remplit domicile) ──
+function openTripModal(){
+  editingTrip=null;
+  document.getElementById('modal-trip-title').textContent='Nouveau voyage';
+  document.getElementById('btn-submit-trip').textContent='Ajouter';
+  // Réinitialiser les champs
+  ['f-lieu-depart','f-lieu','f-lieu-arrivee','f-date-depart','f-date-arrivee','f-date-depart-retour','f-desc'].forEach(id=>document.getElementById(id).value='');
+  ['trip','trip_depart','trip_arrivee'].forEach(ctx=>{resolvedCoords[ctx]={lat:null,lng:null,name:''};});
+  ['addr-resolved-trip','addr-resolved-trip_depart','addr-resolved-trip_arrivee'].forEach(id=>document.getElementById(id).innerHTML='');
+  document.getElementById('f-transport-aller').value='voiture';
+  document.getElementById('f-transport-retour').value='voiture';
+  // Pré-remplir lieu de départ et d'arrivée avec le domicile
+  if(HOME_LIEU){
+    ['f-lieu-depart','f-lieu-arrivee'].forEach(id=>document.getElementById(id).value=HOME_LIEU);
+    ['addr-resolved-trip_depart','addr-resolved-trip_arrivee'].forEach(id=>document.getElementById(id).innerHTML=`<div class="addr-resolved">✅ <strong>${HOME_LIEU}</strong></div>`);
+    resolvedCoords.trip_depart={lat:HOME_LAT,lng:HOME_LNG,name:HOME_LIEU};
+    resolvedCoords.trip_arrivee={lat:HOME_LAT,lng:HOME_LNG,name:HOME_LIEU};
+  }
+  openModal('modal-trip');
+  document.getElementById('f-lieu').focus();
+}
+
+// ── Modifier un voyage existant ──
+function openEditTrip(safeKey){
+  try{
+    const old=JSON.parse(decodeURIComponent(safeKey));
+    editingTrip=old;
+    document.getElementById('modal-trip-title').textContent='Modifier le voyage';
+    document.getElementById('btn-submit-trip').textContent='Modifier';
+    // Départ
+    document.getElementById('f-lieu-depart').value=old.lieuDepart||'';
+    resolvedCoords.trip_depart={lat:parseFloat(old.latDepart)||null,lng:parseFloat(old.lngDepart)||null,name:old.lieuDepart||''};
+    document.getElementById('addr-resolved-trip_depart').innerHTML=old.lieuDepart?`<div class="addr-resolved">✅ <strong>${old.lieuDepart}</strong></div>`:'';
+    // Destination — forcer nouvelle recherche GPS
+    document.getElementById('f-lieu').value=old.lieu||'';
+    resolvedCoords.trip={lat:null,lng:null,name:''};
+    document.getElementById('addr-resolved-trip').innerHTML=`<div class="addr-resolved" style="color:var(--text-muted)">⚠️ Recherchez la destination pour confirmer la position GPS</div>`;
+    // Dates
+    document.getElementById('f-date-depart').value=old.dateDepart||'';
+    document.getElementById('f-date-arrivee').value=old.dateArrivee||'';
+    document.getElementById('f-date-depart-retour').value=old.dateDepartRetour||'';
+    // Transport
+    document.getElementById('f-transport-aller').value=old.transportAller||'voiture';
+    document.getElementById('f-transport-retour').value=old.transportRetour||'voiture';
+    // Retour
+    document.getElementById('f-lieu-arrivee').value=old.lieuArrivee||'';
+    resolvedCoords.trip_arrivee={lat:parseFloat(old.latArrivee)||null,lng:parseFloat(old.lngArrivee)||null,name:old.lieuArrivee||''};
+    document.getElementById('addr-resolved-trip_arrivee').innerHTML=old.lieuArrivee?`<div class="addr-resolved">✅ <strong>${old.lieuArrivee}</strong></div>`:'';
+    // Description
+    document.getElementById('f-desc').value=old.desc||'';
+    openModal('modal-trip');
+    document.getElementById('f-lieu').focus();
+    document.getElementById('f-lieu').select();
+  }catch(e){console.error(e);}
+}
+
+async function submitTrip(){
+  const rDep=resolvedCoords.trip_depart;
+  const rDest=resolvedCoords.trip;
+  const rArr=resolvedCoords.trip_arrivee;
+  const lieuDepartInput=document.getElementById('f-lieu-depart').value.trim();
+  const lieuInput=document.getElementById('f-lieu').value.trim();
+  const lieuArriveeInput=document.getElementById('f-lieu-arrivee').value.trim();
+  const dateDepart=document.getElementById('f-date-depart').value;
+  const dateArrivee=document.getElementById('f-date-arrivee').value;
+  const dateDepartRetour=document.getElementById('f-date-depart-retour').value;
+  const transportAller=document.getElementById('f-transport-aller').value;
+  const transportRetour=document.getElementById('f-transport-retour').value;
+  const desc=document.getElementById('f-desc').value.trim();
+
+  if(!rDest.lat||!rDest.lng){showToast('Recherchez et sélectionnez la destination dans les suggestions',true);return;}
+  if(!dateDepart){showToast('Indiquez la date de départ',true);return;}
+
+  // Départ/arrivée par défaut = domicile si non renseigné
+  const lieuDepart=rDep.name||lieuDepartInput||HOME_LIEU||'';
+  const latDepart=rDep.lat||HOME_LAT||0;
+  const lngDepart=rDep.lng||HOME_LNG||0;
+  const lieuArrivee=rArr.name||lieuArriveeInput||HOME_LIEU||'';
+  const latArrivee=rArr.lat||HOME_LAT||0;
+  const lngArrivee=rArr.lng||HOME_LNG||0;
+
+  const btn=document.getElementById('btn-submit-trip');
+  btn.innerHTML='<span class="spinner-sm"></span>';btn.disabled=true;
+  const wasEditing=!!editingTrip;
+
+  // En mode édition : supprimer l'ancien voyage d'abord
+  if(editingTrip){
+    await postToSheet({action:'deleteTrip',nom:USERNAME,tripId:editingTrip.tripId,lieu:editingTrip.lieu});
+    editingTrip=null;
+  }
+
+  const tripId='T'+Date.now().toString(36);
+  const ok=await postToSheet({action:'addTrip',nom:USERNAME,
+    lieuDepart,latDepart,lngDepart,dateDepart,transportAller,dateArrivee,
+    lieu:rDest.name||lieuInput,lat:rDest.lat,lng:rDest.lng,
+    dateDepartRetour,lieuArrivee,latArrivee,lngArrivee,transportRetour,
+    description:desc,tripId});
+  btn.innerHTML=wasEditing?'Modifier':'Ajouter';btn.disabled=false;
+  if(ok){
+    showToast(wasEditing?'Voyage mis à jour !':'Voyage ajouté !');
+    closeTripModal();
+    setTimeout(refreshData,2000);
+  }
+}
+
+async function deleteTrip(tripId,lieu){
+  if(!confirm(`Supprimer le voyage${lieu?' à '+lieu:''}?`))return;
+  await postToSheet({action:'deleteTrip',nom:USERNAME,tripId,lieu});
+  showToast('Voyage supprimé');
+  setTimeout(refreshData,2000);
+}
+async function deleteProfile(){if(!confirm('Supprimer définitivement votre profil et tous vos voyages ?'))return;if(!confirm('Action irréversible. Confirmer ?'))return;await postToSheet({action:'deleteProfile',nom:USERNAME});showToast('Profil supprimé');setTimeout(refreshData,2000);}
+
+async function submitMeetup(){
+  const r=resolvedCoords.meetup;
+  const date=document.getElementById('m-date').value;
+  const desc=document.getElementById('m-desc').value.trim();
+  const lieuInput=document.getElementById('m-lieu').value.trim();
+  if(!r.lat||!r.lng){showToast('Sélectionnez un lieu dans les suggestions ou cliquez sur la carte',true);return;}
+  if(!date){showToast('Veuillez renseigner la date',true);return;}
+  const id='M'+Date.now();
+  await postToSheet({action:'addMeetup',id,proposeur:USERNAME,lieu:r.name||lieuInput,lat:r.lat,lng:r.lng,date,description:desc,participants:USERNAME});
+  showToast(`RDV proposé !`);closeModal('modal-meetup');['m-lieu','m-date','m-desc'].forEach(id=>document.getElementById(id).value='');document.getElementById('addr-resolved-meetup').innerHTML='';setTimeout(refreshData,2000);
+}
+
+async function joinMeetup(id){await postToSheet({action:'joinMeetup',id,nom:USERNAME});showToast('Inscription confirmée !');setTimeout(refreshData,2000);}
+async function deleteMeetup(id){if(!confirm('Supprimer ce RDV ?'))return;await postToSheet({action:'deleteMeetup',id});showToast('RDV supprimé');setTimeout(refreshData,2000);}
+
+// ═══════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){
+  document.getElementById(id).classList.remove('show');
+  if(id==='modal-trip')closeTripModal(true);
+}
+function closeTripModal(fromCloseModal=false){
+  editingTrip=null;
+  document.getElementById('modal-trip-title').textContent='Nouveau voyage';
+  document.getElementById('btn-submit-trip').textContent='Ajouter';
+  if(!fromCloseModal)document.getElementById('modal-trip').classList.remove('show');
+}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));});
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function fmtDate(d){if(!d)return'';const p=d.split('-');return p.length===3?`${p[2]}/${p[1]}`:d;}
+function showToast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(isError?' error':'');setTimeout(()=>t.className='toast',isError?5000:3000);}
+function setStatus(s){}
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+const alertStyle=document.createElement('style');alertStyle.textContent='@keyframes alertBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}';document.head.appendChild(alertStyle);
+window.addEventListener('DOMContentLoaded',()=>{loadConfig();setupSheet();});
+</script>
+</body>
+</html>
