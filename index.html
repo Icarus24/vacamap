@@ -75,7 +75,7 @@ header { padding:10px 14px; display:flex; align-items:center; justify-content:sp
 .sheet-handle { width:36px; height:4px; border-radius:4px; background:rgba(255,255,255,0.15); margin:9px auto 5px; flex-shrink:0; cursor:pointer; }
 .tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; padding:0 6px; overflow-x:auto; scrollbar-width:none; }
 .tabs::-webkit-scrollbar { display:none; }
-.tab { flex-shrink:0; text-align:center; padding:9px 12px; font-size:0.72rem; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; background:none; border-top:none; border-left:none; border-right:none; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+.tab { flex-shrink:0; text-align:center; padding:12px 16px; font-size:0.82rem; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; background:none; border-top:none; border-left:none; border-right:none; font-family:'DM Sans',sans-serif; white-space:nowrap; }
 .tab:hover { color:var(--text); }
 .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
 .sheet-content { overflow-y:auto; padding:12px 14px 32px; flex:1; -webkit-overflow-scrolling:touch; }
@@ -103,7 +103,7 @@ header { padding:10px 14px; display:flex; align-items:center; justify-content:sp
 
 /* ── Filter chips ── */
 .filter-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
-.chip { font-family:'DM Sans',sans-serif; font-size:0.68rem; font-weight:600; padding:4px 11px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-muted); transition:all 0.15s; }
+.chip { font-family:'DM Sans',sans-serif; font-size:0.78rem; font-weight:600; padding:7px 14px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-muted); transition:all 0.15s; }
 .chip.active { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
 
 /* ── Legend ── */
@@ -118,14 +118,14 @@ header { padding:10px 14px; display:flex; align-items:center; justify-content:sp
 .ttag { display:inline-flex; align-items:center; gap:3px; font-size:0.63rem; font-weight:600; padding:2px 7px; border-radius:10px; background:rgba(255,255,255,0.05); color:var(--text-muted); margin-left:4px; vertical-align:middle; }
 
 /* ── Buttons ── */
-.btn { font-family:'DM Sans',sans-serif; border:none; cursor:pointer; border-radius:8px; font-size:0.78rem; font-weight:600; padding:7px 14px; transition:all 0.15s; display:inline-flex; align-items:center; gap:5px; }
+.btn { font-family:'DM Sans',sans-serif; border:none; cursor:pointer; border-radius:10px; font-size:0.9rem; font-weight:600; padding:11px 20px; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; min-height:44px; }
 .btn-accent { background:var(--accent); color:#0f1923; }
 .btn-accent:hover { background:var(--accent-light); }
 .btn-accent:disabled { background:rgba(240,165,0,0.3); cursor:not-allowed; }
 .btn-ghost { background:transparent; color:var(--text-muted); border:1px solid var(--border); }
 .btn-ghost:hover { color:var(--text); border-color:rgba(255,255,255,0.15); }
 .btn-danger { background:rgba(231,76,60,0.1); color:var(--danger); }
-.btn-sm { padding:5px 10px; font-size:0.72rem; }
+.btn-sm { padding:8px 14px; font-size:0.8rem; min-height:38px; }
 
 /* ── Modal ── */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); display:none; align-items:flex-end; justify-content:center; z-index:300; }
@@ -189,53 +189,75 @@ header { padding:10px 14px; display:flex; align-items:center; justify-content:sp
       <div id="diag-content"></div>
     </div>
 
-    <div class="form-section-title">Connexion Google Sheet</div>
-
-    <div class="form-group">
-      <label>ID du Google Sheet *</label>
-      <div class="input-with-btn">
-        <input type="text" id="input-sheet-id" placeholder="1A2B3C4D5E6F7G8H… (ou coller l'URL complète)" oninput="extractSheetId(this)">
-        <button class="btn btn-ghost" onclick="testConnection()" id="btn-test" style="white-space:nowrap">Tester</button>
+    <!-- ══ MODE SIMPLE : code d'invitation ══ -->
+    <div id="mode-simple">
+      <div class="form-group">
+        <label>Code d'invitation</label>
+        <input type="text" id="input-invite-code" placeholder="Collez le code reçu de l'organisateur" style="font-size:0.95rem;text-align:center;letter-spacing:0.5px">
+        <div class="help-text">Pas de code ? Demandez-le à l'organisateur du groupe.</div>
       </div>
-      <div class="help-text" id="hint-sheet-id">Dans l'URL : docs.google.com/spreadsheets/d/<strong style="color:var(--accent)">IDENTIFIANT</strong>/edit</div>
-    </div>
-
-    <div class="form-group">
-      <label>Clé API Google *</label>
-      <input type="text" id="input-api-key" placeholder="AIzaSy…">
-      <div class="help-text">Avec <strong>Google Sheets API</strong> activée</div>
-    </div>
-
-    <div class="form-group">
-      <label>URL Web App Apps Script</label>
-      <input type="text" id="input-webapp-url" placeholder="https://script.google.com/macros/s/…">
-      <div class="help-text">Nécessaire pour l'écriture (ajout/suppression de voyages)</div>
-    </div>
-
-    <div class="form-section-title">Votre identité</div>
-
-    <div class="form-group">
-      <label>Prénom / pseudo *</label>
-      <input type="text" id="input-username" placeholder="Ex: Julien">
-    </div>
-
-    <div class="form-group">
-      <label>Ville de départ</label>
-      <div class="addr-wrap">
-        <input type="text" id="input-home-lieu" placeholder="Ex: Rennes" autocomplete="off" oninput="addrSearch(this.value,'home')">
-        <div class="addr-results" id="addr-results-home"></div>
+      <div class="form-group">
+        <label>Prénom / pseudo *</label>
+        <input type="text" id="input-username" placeholder="Ex: Julien" style="font-size:0.95rem">
       </div>
-      <div id="addr-resolved-home"></div>
-      <div class="help-text">Utilisée pour tracer vos trajets et détecter des croisements avec vos amis</div>
+      <div class="form-group">
+        <label>Ville de départ</label>
+        <div class="addr-wrap">
+          <input type="text" id="input-home-lieu" placeholder="Ex: Rennes" autocomplete="off" oninput="addrSearch(this.value,'home')" style="font-size:0.95rem">
+          <div class="addr-results" id="addr-results-home"></div>
+        </div>
+        <div id="addr-resolved-home"></div>
+      </div>
+      <div style="margin-top:1.2rem">
+        <button class="btn btn-accent" onclick="enterWithCode()" style="width:100%;justify-content:center;padding:14px;font-size:1rem">Rejoindre le groupe →</button>
+      </div>
+      <div style="text-align:center;margin-top:1rem">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAdvanced()" id="btn-show-advanced">⚙️ Configuration manuelle (admin)</button>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label>Mot de passe admin (optionnel)</label>
-      <input type="password" id="input-admin-pwd" placeholder="Laisser vide si non admin">
-    </div>
-
-    <div style="margin-top:1.4rem">
-      <button class="btn btn-accent" onclick="initApp()" style="width:100%;justify-content:center;padding:12px;font-size:0.9rem">Entrer dans VacaMap →</button>
+    <!-- ══ MODE AVANCÉ : config manuelle ══ -->
+    <div id="mode-advanced" style="display:none">
+      <div class="form-section-title">Connexion Google Sheet</div>
+      <div class="form-group">
+        <label>ID du Google Sheet *</label>
+        <div class="input-with-btn">
+          <input type="text" id="input-sheet-id" placeholder="1A2B3C4D5E6F7G8H… (ou coller l'URL complète)" oninput="extractSheetId(this)">
+          <button class="btn btn-ghost" onclick="testConnection()" id="btn-test" style="white-space:nowrap">Tester</button>
+        </div>
+        <div class="help-text" id="hint-sheet-id">Dans l'URL : docs.google.com/spreadsheets/d/<strong style="color:var(--accent)">IDENTIFIANT</strong>/edit</div>
+      </div>
+      <div class="form-group">
+        <label>Clé API Google *</label>
+        <input type="text" id="input-api-key" placeholder="AIzaSy…">
+      </div>
+      <div class="form-group">
+        <label>URL Web App Apps Script</label>
+        <input type="text" id="input-webapp-url" placeholder="https://script.google.com/macros/s/…">
+      </div>
+      <div class="form-section-title">Votre identité</div>
+      <div class="form-group">
+        <label>Prénom / pseudo *</label>
+        <input type="text" id="input-username-adv" placeholder="Ex: Julien">
+      </div>
+      <div class="form-group">
+        <label>Ville de départ</label>
+        <div class="addr-wrap">
+          <input type="text" id="input-home-lieu-adv" placeholder="Ex: Rennes" autocomplete="off" oninput="addrSearch(this.value,'home')">
+          <div class="addr-results" id="addr-results-home-adv"></div>
+        </div>
+        <div id="addr-resolved-home-adv"></div>
+      </div>
+      <div class="form-group">
+        <label>Mot de passe admin (optionnel)</label>
+        <input type="password" id="input-admin-pwd" placeholder="Laisser vide si non admin">
+      </div>
+      <div style="margin-top:1.4rem">
+        <button class="btn btn-accent" onclick="initApp()" style="width:100%;justify-content:center;padding:14px;font-size:1rem">Entrer dans VacaMap →</button>
+      </div>
+      <div style="text-align:center;margin-top:1rem">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAdvanced()">← Mode simple</button>
+      </div>
     </div>
 
     <details style="margin-top:1.8rem">
@@ -324,7 +346,21 @@ header { padding:10px 14px; display:flex; align-items:center; justify-content:sp
   finally { lock.releaseLock(); }
 }
 function ok(d){return ContentService.createTextOutput(JSON.stringify(d)).setMimeType(ContentService.MimeType.JSON);}
-function doGet(e){return ok({status:"VacaMap API running"});}</code></pre>
+function doGet(e){
+  if(e&&e.parameter&&e.parameter.action==="route"){
+    try{
+      var from=e.parameter.from,to=e.parameter.to;
+      if(!from||!to) return ok({status:"error",message:"Missing from/to"});
+      var d=Maps.newDirectionFinder().setOrigin(from).setDestination(to).setMode(Maps.DirectionFinder.Mode.DRIVING).getDirections();
+      if(d.routes&&d.routes.length>0){
+        var poly=d.routes[0].overview_polyline.points,dist=0,dur=0,legs=d.routes[0].legs;
+        for(var i=0;i&lt;legs.length;i++){dist+=legs[i].distance.value;dur+=legs[i].duration.value;}
+        return ok({status:"ok",polyline:poly,distance:dist,duration:dur});
+      } else return ok({status:"error",message:"No route found"});
+    }catch(err){return ok({status:"error",message:err.toString()});}
+  }
+  return ok({status:"VacaMap API running"});
+}</code></pre>
         </details>
       </div>
     </details>
@@ -504,13 +540,54 @@ function loadConfig(){
     if(c.sheetId) document.getElementById('input-sheet-id').value=c.sheetId;
     if(c.apiKey)  document.getElementById('input-api-key').value=c.apiKey;
     if(c.webappUrl) document.getElementById('input-webapp-url').value=c.webappUrl;
-    if(c.username)  document.getElementById('input-username').value=c.username;
+    if(c.username) document.getElementById('input-username').value=c.username;
     if(c.homeLieu){
       document.getElementById('input-home-lieu').value=c.homeLieu;
       document.getElementById('addr-resolved-home').innerHTML=`<div class="addr-resolved">✅ <strong>${c.homeLieu}</strong></div>`;
       resolvedCoords.home={lat:c.homeLat,lng:c.homeLng,name:c.homeLieu};
     }
+    // Auto-connexion si déjà configuré
+    if(c.sheetId&&c.apiKey&&c.username){
+      SHEET_ID=c.sheetId;API_KEY=c.apiKey;WEBAPP_URL=c.webappUrl||'';USERNAME=c.username;
+      HOME_LIEU=c.homeLieu||'';HOME_LAT=c.homeLat;HOME_LNG=c.homeLng;
+      autoEnter();
+    }
   }catch(e){}
+}
+
+function autoEnter(){
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('user-display').textContent=USERNAME;
+  initMap();refreshData();
+  if(HOME_LAT&&HOME_LNG) postToSheet({action:'upsertProfile',nom:USERNAME,lieu:HOME_LIEU,lat:HOME_LAT,lng:HOME_LNG});
+}
+
+// ── Code d'invitation ──
+function generateInviteCode(){
+  return btoa(JSON.stringify({s:SHEET_ID,a:API_KEY,w:WEBAPP_URL}));
+}
+function decodeInviteCode(code){
+  try{const c=JSON.parse(atob(code.trim()));return{sheetId:c.s,apiKey:c.a,webappUrl:c.w};}catch(e){return null;}
+}
+
+function enterWithCode(){
+  const code=document.getElementById('input-invite-code').value.trim();
+  const username=document.getElementById('input-username').value.trim();
+  if(!code){showToast('Collez le code d\'invitation reçu',true);return;}
+  if(!username){showToast('Entrez votre prénom',true);return;}
+  const cfg=decodeInviteCode(code);
+  if(!cfg||!cfg.sheetId||!cfg.apiKey){showToast('Code d\'invitation invalide',true);return;}
+  SHEET_ID=cfg.sheetId;API_KEY=cfg.apiKey;WEBAPP_URL=cfg.webappUrl||'';USERNAME=username;
+  HOME_LIEU=resolvedCoords.home.name||document.getElementById('input-home-lieu').value.trim();
+  HOME_LAT=resolvedCoords.home.lat;HOME_LNG=resolvedCoords.home.lng;
+  saveConfig();autoEnter();
+}
+
+function toggleAdvanced(){
+  const s=document.getElementById('mode-simple'),a=document.getElementById('mode-advanced');
+  const showing=a.style.display==='none';
+  s.style.display=showing?'none':'';a.style.display=showing?'':'none';
 }
 
 // ═══════════════════════════════════════════
@@ -573,7 +650,7 @@ async function testConnection(){
 async function initApp(){
   SHEET_ID=getSheetId();
   API_KEY=document.getElementById('input-api-key').value.trim();
-  USERNAME=document.getElementById('input-username').value.trim();
+  USERNAME=(document.getElementById('input-username-adv').value||document.getElementById('input-username').value).trim();
   WEBAPP_URL=document.getElementById('input-webapp-url').value.trim();
   const adminPwd=document.getElementById('input-admin-pwd').value.trim();
   HOME_LIEU=resolvedCoords.home.name||document.getElementById('input-home-lieu').value.trim();
@@ -721,8 +798,13 @@ function buildSegments(grouped){
   return segs;
 }
 
-function shiftDate(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
+function shiftDate(d,n){try{const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}catch(e){return d;}}
 function datesOverlap(a0,a1,b0,b1){return new Date(a0)<=new Date(b1)&&new Date(b0)<=new Date(a1);}
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
 function segIntersect(p1,p2,p3,p4){
   const d1x=p2.lng-p1.lng,d1y=p2.lat-p1.lat,d2x=p4.lng-p3.lng,d2y=p4.lat-p3.lat;
   const cross=d1x*d2y-d1y*d2x;if(Math.abs(cross)<1e-10)return null;
@@ -732,6 +814,7 @@ function segIntersect(p1,p2,p3,p4){
   return null;
 }
 
+// ── Détection de croisements de routes ──
 function detectAlerts(segs){
   const car=segs.filter(s=>s.transport==='voiture');const alerts=[];
   for(let i=0;i<car.length;i++) for(let j=i+1;j<car.length;j++){
@@ -741,16 +824,86 @@ function detectAlerts(segs){
     if(pt){
       const os=new Date(a.tStart)>new Date(b.tStart)?a.tStart:b.tStart;
       const oe=new Date(a.tEnd)<new Date(b.tEnd)?a.tEnd:b.tEnd;
-      alerts.push({personA:a.nom,personB:b.nom,segA:a.label,segB:b.label,lat:pt.lat,lng:pt.lng,dateRange:`${fmtDate(os)} — ${fmtDate(oe)}`});
+      alerts.push({type:'crossing',personA:a.nom,personB:b.nom,segA:a.label,segB:b.label,lat:pt.lat,lng:pt.lng,dateRange:`${fmtDate(os)} — ${fmtDate(oe)}`});
     }
   }
   return alerts;
 }
 
+// ── Détection de co-présences (même lieu aux mêmes dates) ──
+function detectCoPresence(grouped){
+  const alerts=[];const names=Object.keys(grouped);
+  for(let i=0;i<names.length;i++) for(let j=i+1;j<names.length;j++){
+    grouped[names[i]].forEach(tA=>{
+      grouped[names[j]].forEach(tB=>{
+        if(!tA.lat||!tB.lat||isNaN(tA.lat)||isNaN(tB.lat))return;
+        const dist=haversine(tA.lat,tA.lng,tB.lat,tB.lng);
+        if(dist>60)return; // < 60 km = même zone
+        const startA=tA.dateArrivee||tA.dateDepart,endA=tA.dateDepartRetour||tA.dateArrivee||tA.dateDepart;
+        const startB=tB.dateArrivee||tB.dateDepart,endB=tB.dateDepartRetour||tB.dateArrivee||tB.dateDepart;
+        if(!startA||!startB||!datesOverlap(startA,endA,startB,endB))return;
+        const os=new Date(startA)>new Date(startB)?startA:startB;
+        const oe=new Date(endA)<new Date(endB)?endA:endB;
+        alerts.push({type:'copresence',personA:names[i],personB:names[j],
+          lieu:`${tA.lieu}${tA.lieu!==tB.lieu?' / '+tB.lieu:''}`,
+          lat:(tA.lat+tB.lat)/2,lng:(tA.lng+tB.lng)/2,dateRange:`${fmtDate(os)} — ${fmtDate(oe)}`});
+      });
+    });
+  }
+  return alerts;
+}
+
+// ── Routage réaliste via Apps Script (Google Maps) ──
+const routeCache={};
+(function loadRouteCache(){try{const c=localStorage.getItem('vacamap_routes');if(c)Object.assign(routeCache,JSON.parse(c));}catch(e){}})();
+
+async function fetchRoute(fromLat,fromLng,toLat,toLng){
+  const key=`${fromLat.toFixed(3)},${fromLng.toFixed(3)}-${toLat.toFixed(3)},${toLng.toFixed(3)}`;
+  if(routeCache[key])return routeCache[key];
+  if(!WEBAPP_URL)return[[fromLat,fromLng],[toLat,toLng]];
+  try{
+    const url=`${WEBAPP_URL}?action=route&from=${fromLat},${fromLng}&to=${toLat},${toLng}`;
+    const resp=await fetch(url,{redirect:'follow'});
+    const text=await resp.text();
+    const data=JSON.parse(text);
+    if(data.status==='ok'&&data.polyline){
+      const coords=decodePolyline(data.polyline);
+      routeCache[key]=coords;
+      try{localStorage.setItem('vacamap_routes',JSON.stringify(routeCache));}catch(e){}
+      return coords;
+    }
+  }catch(e){console.warn('Route fetch:',e);}
+  return[[fromLat,fromLng],[toLat,toLng]];
+}
+
+function decodePolyline(enc){
+  const pts=[];let lat=0,lng=0,i=0;
+  while(i<enc.length){
+    let b,shift=0,result=0;
+    do{b=enc.charCodeAt(i++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+    lat+=(result&1)?~(result>>1):(result>>1);
+    shift=0;result=0;
+    do{b=enc.charCodeAt(i++)-63;result|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);
+    lng+=(result&1)?~(result>>1):(result>>1);
+    pts.push([lat/1e5,lng/1e5]);
+  }
+  return pts;
+}
+
+function makeArc(from,to){
+  const pts=[];const dx=to.lng-from.lng,dy=to.lat-from.lat;
+  const dist=Math.sqrt(dx*dx+dy*dy);if(dist<0.01)return[[from.lat,from.lng],[to.lat,to.lng]];
+  const offset=dist*0.15;const cpLat=(from.lat+to.lat)/2-dx/dist*offset;const cpLng=(from.lng+to.lng)/2+dy/dist*offset;
+  for(let t=0;t<=1;t+=0.04){
+    pts.push([(1-t)*(1-t)*from.lat+2*(1-t)*t*cpLat+t*t*to.lat,(1-t)*(1-t)*from.lng+2*(1-t)*t*cpLng+t*t*to.lng]);
+  }
+  return pts;
+}
+
 // ═══════════════════════════════════════════
 // RENDER MAP
 // ═══════════════════════════════════════════
-function renderMap(filterName){
+async function renderMap(filterName){
   clearMap();
   const homes=getHomes();
   const grouped=buildTripGroups();
@@ -759,13 +912,21 @@ function renderMap(filterName){
   const filteredTrips=filterName?(tripsData.filter(r=>r[0]===filterName)):tripsData;
   const filteredMeetups=filterName?meetupsData.filter(m=>m[1]===filterName||(m[7]||'').includes(filterName)):meetupsData;
 
-  // Route lines
-  filteredSegs.forEach(seg=>{
+  // Route lines (async pour trajets réalistes)
+  await Promise.all(filteredSegs.map(async seg=>{
     const color=getColor(seg.nom);const isCar=seg.transport==='voiture';
-    const line=L.polyline([[seg.from.lat,seg.from.lng],[seg.to.lat,seg.to.lng]],{color,weight:isCar?3:2,opacity:isCar?0.75:0.5,dashArray:isCar?null:'7,7',lineCap:'round'}).addTo(map);
+    let coords;
+    if(isCar){
+      coords=await fetchRoute(seg.from.lat,seg.from.lng,seg.to.lat,seg.to.lng);
+    }else if(seg.transport==='avion'){
+      coords=makeArc(seg.from,seg.to);
+    }else{
+      coords=[[seg.from.lat,seg.from.lng],[seg.to.lat,seg.to.lng]];
+    }
+    const line=L.polyline(coords,{color,weight:isCar?3.5:2.5,opacity:isCar?0.85:0.55,dashArray:isCar?null:'8,8',lineCap:'round'}).addTo(map);
     line.bindPopup(`<div class="popup-name" style="color:${color}">${seg.nom}</div><div class="popup-place">${TRANSPORT_ICONS[seg.transport]||'🚗'} ${seg.label}</div><div class="popup-dates">${fmtDate(seg.tStart)} → ${fmtDate(seg.tEnd)}</div>`);
     allLayers.push(line);
-  });
+  }));
 
   // Home markers
   const displayHomes=filterName?{[filterName]:homes[filterName]}:homes;
@@ -800,12 +961,24 @@ function renderMap(filterName){
     allLayers.push(m);
   });
 
-  // Alert markers
-  currentAlerts=filterName?[]:detectAlerts(allSegs);
+  // Alert markers (croisements + co-présences)
+  const crossingAlerts=filterName?[]:detectAlerts(allSegs);
+  const coPresAlerts=filterName?[]:detectCoPresence(grouped);
+  currentAlerts=[...crossingAlerts,...coPresAlerts];
   updateAlertBadge();
   currentAlerts.forEach(a=>{
-    const icon=L.divIcon({className:'x',html:`<div style="width:26px;height:26px;border-radius:50%;background:rgba(255,107,107,0.9);border:3px solid #fff;box-shadow:0 0 16px rgba(255,107,107,0.5);display:flex;align-items:center;justify-content:center;font-size:13px;animation:alertBounce 1s ease-in-out infinite">⚠️</div>`,iconSize:[26,26],iconAnchor:[13,13]});
-    const m=L.marker([a.lat,a.lng],{icon,zIndexOffset:1000}).addTo(map).bindPopup(`<div class="popup-alert-title">⚠️ Croisement détecté !</div><div class="popup-place"><strong>${a.personA}</strong> × <strong>${a.personB}</strong></div><div class="popup-dates">🚗 ${a.segA}</div><div class="popup-dates">🚗 ${a.segB}</div><div class="popup-dates" style="margin-top:4px;color:var(--accent)">📅 ${a.dateRange}</div>`);
+    const isCoPres=a.type==='copresence';
+    const bgColor=isCoPres?'rgba(39,174,96,0.9)':'rgba(255,107,107,0.9)';
+    const shadowColor=isCoPres?'rgba(39,174,96,0.5)':'rgba(255,107,107,0.5)';
+    const emoji=isCoPres?'🤝':'⚠️';
+    const icon=L.divIcon({className:'x',html:`<div style="width:28px;height:28px;border-radius:50%;background:${bgColor};border:3px solid #fff;box-shadow:0 0 16px ${shadowColor};display:flex;align-items:center;justify-content:center;font-size:14px;animation:alertBounce 1s ease-in-out infinite">${emoji}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+    let popupHtml;
+    if(isCoPres){
+      popupHtml=`<div class="popup-alert-title" style="color:var(--success)">🤝 Co-présence détectée !</div><div class="popup-place"><strong>${a.personA}</strong> × <strong>${a.personB}</strong></div><div class="popup-dates">📍 ${a.lieu}</div><div class="popup-dates" style="margin-top:4px;color:var(--accent)">📅 ${a.dateRange}</div>`;
+    }else{
+      popupHtml=`<div class="popup-alert-title">⚠️ Croisement détecté !</div><div class="popup-place"><strong>${a.personA}</strong> × <strong>${a.personB}</strong></div><div class="popup-dates">🚗 ${a.segA}</div><div class="popup-dates">🚗 ${a.segB}</div><div class="popup-dates" style="margin-top:4px;color:var(--accent)">📅 ${a.dateRange}</div>`;
+    }
+    const m=L.marker([a.lat,a.lng],{icon,zIndexOffset:1000}).addTo(map).bindPopup(popupHtml);
     allLayers.push(m);
   });
 
@@ -882,14 +1055,25 @@ function renderFriends(c){
 function focusUser(name){activeFilter=name;renderMap(name);renderCurrentTab();}
 function flyTo(lat,lng){if(!lat||!lng)return;map.setView([parseFloat(lat),parseFloat(lng)],10,{animate:true});}
 
-// ── Alerts ──
+// ── Alerts (croisements + co-présences) ──
 function renderAlerts(c){
-  const grouped=buildTripGroups();const segs=buildSegments(grouped);const alerts=detectAlerts(segs);
-  if(!alerts.length){c.innerHTML=`<div class="empty"><div class="icon">✅</div><p>Aucun croisement de route voiture détecté.<br><small>Seuls les trajets voiture sur des périodes communes sont analysés.</small></p></div>`;return;}
-  let html=`<div class="section-label">Croisements détectés (${alerts.length})</div><div style="font-size:0.73rem;color:var(--text-muted);margin-bottom:10px">Routes voiture qui se croisent à la même période — proposez un RDV !</div>`;
-  alerts.forEach(a=>{
-    html+=`<div class="alert-card" onclick="flyTo(${a.lat},${a.lng})"><div class="a-title">⚠️ ${a.personA} × ${a.personB}</div><div class="a-info">🚗 ${a.personA} : ${a.segA}<br>🚗 ${a.personB} : ${a.segB}<br>📅 Période commune : ${a.dateRange}</div><div style="margin-top:8px"><button class="btn btn-accent btn-sm" onclick="event.stopPropagation();openModal('modal-meetup');document.getElementById('m-lieu').focus()">☕ Proposer un RDV ici</button></div></div>`;
-  });
+  const grouped=buildTripGroups();const segs=buildSegments(grouped);
+  const crossings=detectAlerts(segs);const coPres=detectCoPresence(grouped);
+  const all=[...coPres,...crossings];
+  if(!all.length){c.innerHTML=`<div class="empty"><div class="icon">✅</div><p>Aucune rencontre possible détectée.<br><small>Les co-présences (même lieu, mêmes dates) et les croisements de routes voiture sont analysés.</small></p></div>`;return;}
+  let html='';
+  if(coPres.length){
+    html+=`<div class="section-label">🤝 Co-présences (${coPres.length})</div><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Amis au même endroit en même temps !</div>`;
+    coPres.forEach(a=>{
+      html+=`<div class="meetup-card" onclick="flyTo(${a.lat},${a.lng})"><div class="m-title" style="color:var(--success)">🤝 ${a.personA} × ${a.personB}</div><div class="m-info">📍 ${a.lieu}<br>📅 ${a.dateRange}</div><div style="margin-top:8px"><button class="btn btn-accent btn-sm" onclick="event.stopPropagation();openModal('modal-meetup');document.getElementById('m-lieu').focus()">☕ Proposer un RDV</button></div></div>`;
+    });
+  }
+  if(crossings.length){
+    html+=`<div class="section-label" style="margin-top:${coPres.length?'16px':'0'}">⚠️ Croisements de route (${crossings.length})</div><div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Routes voiture qui se croisent à la même période</div>`;
+    crossings.forEach(a=>{
+      html+=`<div class="alert-card" onclick="flyTo(${a.lat},${a.lng})"><div class="a-title">⚠️ ${a.personA} × ${a.personB}</div><div class="a-info">🚗 ${a.personA} : ${a.segA}<br>🚗 ${a.personB} : ${a.segB}<br>📅 ${a.dateRange}</div><div style="margin-top:8px"><button class="btn btn-accent btn-sm" onclick="event.stopPropagation();openModal('modal-meetup');document.getElementById('m-lieu').focus()">☕ Proposer un RDV</button></div></div>`;
+    });
+  }
   c.innerHTML=html;
 }
 
@@ -942,7 +1126,15 @@ function renderProfile(c){
 // ── Admin ──
 function renderAdmin(c){
   const g={};tripsData.forEach(r=>{if(!g[r[0]])g[r[0]]=0;g[r[0]]++;});
-  let html='<div class="section-label">Administration</div>';
+  // Code d'invitation
+  const code=generateInviteCode();
+  let html=`<div class="section-label">Code d'invitation</div>
+    <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">Partagez ce code à vos amis pour qu'ils rejoignent le groupe :</div>
+      <div style="position:relative"><textarea id="invite-code-text" readonly style="font-family:monospace;width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--accent-light);font-size:0.72rem;resize:none;min-height:52px;word-break:break-all">${code}</textarea>
+      <button class="btn btn-accent btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('invite-code-text').value);showToast('Code copié !')" style="position:absolute;top:6px;right:6px">📋 Copier</button></div>
+    </div>`;
+  html+='<div class="section-label">Profils</div>';
   Object.entries(g).forEach(([name,count])=>{
     html+=`<div class="card"><div class="color-bar" style="background:${getColor(name)}"></div><div class="c-name" style="padding-left:10px">${name}</div><div class="c-sub" style="padding-left:10px">${count} voyage(s)</div><div style="padding-left:10px;margin-top:8px"><button class="btn btn-danger btn-sm" onclick="adminDelete('${name.replace(/'/g,"\\'")}')">Supprimer le profil</button></div></div>`;
   });
